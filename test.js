@@ -26,3 +26,21 @@ test('strings', (t) => {
 
   t.is(inspect('f\noo'), '\'f\\noo\'', 'with newline')
 })
+
+test('recursive object reference', (t) => {
+  const foo = { bar: null }
+  const bar = { foo }
+
+  foo.bar = bar
+
+  t.is(inspect(foo), '<ref *1> { bar: { foo: [Circular *1] } }')
+})
+
+test('recursive array reference', (t) => {
+  const foo = []
+  const bar = [foo]
+
+  foo[0] = bar
+
+  t.is(inspect(foo), '<ref *1> [ [ [Circular *1] ] ]')
+})

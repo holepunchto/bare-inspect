@@ -3,9 +3,41 @@ module.exports = function inspect (value, opts = {}) {
     breakLength = 80
   } = opts
 
-  const tree = inspectValue(value, 0, { breakLength })
+  const references = new InspectRefMap()
+
+  const tree = inspectValue(value, 0, { breakLength, references })
 
   return tree.toString()
+}
+
+class InspectRefMap {
+  constructor () {
+    this.refs = new WeakMap()
+    this.ids = new WeakMap()
+    this.nextId = 1
+  }
+
+  has (object) {
+    return this.refs.has(object)
+  }
+
+  get (object) {
+    return this.refs.get(object)
+  }
+
+  set (object, ref) {
+    this.refs.set(object, ref)
+  }
+
+  id (object) {
+    let id = this.ids.get(object)
+    if (id) return id
+
+    id = this.nextId++
+    this.ids.set(object, id)
+
+    return id
+  }
 }
 
 class InspectNode {
@@ -17,6 +49,27 @@ class InspectNode {
 
   indent (n, string) {
     return '  '.repeat(n) + string
+  }
+}
+
+class InspectRef extends InspectNode {
+  constructor (depth, opts) {
+    super(depth, '[Circular]'.length, opts)
+
+    this.refs = opts.references
+    this.count = 0
+  }
+
+  get id () {
+    return this.refs.id(this)
+  }
+
+  increment () {
+    return ++this.count
+  }
+
+  toString (indent = 0, offset = 0) {
+    return '[Circular *' + this.id + ']'
   }
 }
 
@@ -56,8 +109,9 @@ class InspectPair extends InspectNode {
 }
 
 class InspectSequence extends InspectNode {
-  constructor (header, footer, delim, values, depth, opts) {
+  constructor (header, footer, delim, values, ref, depth, opts) {
     const length = (
+      ref.length +
       header.length + 1 +
       values.reduce((length, value, i) => length + value.length + (i === 0 ? 0 : delim.length + 1), 0) +
       footer.length + 1
@@ -69,6 +123,7 @@ class InspectSequence extends InspectNode {
     this.footer = footer
     this.delim = delim
     this.values = values
+    this.ref = ref
   }
 
   toString (indent = 0, offset = 0) {
@@ -80,6 +135,10 @@ class InspectSequence extends InspectNode {
     const spacer = this.values.length ? ' ' : ''
 
     let string = ''
+
+    if (this.ref.count) {
+      string += '<ref *' + this.ref.id + '> '
+    }
 
     if (split) {
       string += this.header + '\n'
@@ -182,16 +241,38 @@ function inspectObject (object, depth, opts) {
   if (object instanceof Array) return inspectArray(object, depth, opts)
   if (object instanceof Error) return inspectError(object, depth, opts)
 
+  const refs = opts.references
+
+  let ref = refs.get(object)
+  if (ref) {
+    ref.increment()
+    return ref
+  }
+
+  ref = new InspectRef(depth, opts)
+  refs.set(object, ref)
+
   const values = []
 
   for (const key in object) {
     values.push(new InspectPair(':', inspectKey(key, depth + 1, opts), inspectValue(object[key], depth + 1, opts), depth + 1, opts))
   }
 
-  return new InspectSequence('{', '}', ',', values, depth, opts)
+  return new InspectSequence('{', '}', ',', values, ref, depth, opts)
 }
 
 function inspectArray (array, depth, opts) {
+  const refs = opts.references
+
+  let ref = refs.get(array)
+  if (ref) {
+    ref.increment()
+    return ref
+  }
+
+  ref = new InspectRef(depth, opts)
+  refs.set(array, ref)
+
   const values = []
 
   for (const key in array) {
@@ -204,7 +285,7 @@ function inspectArray (array, depth, opts) {
     }
   }
 
-  return new InspectSequence('[', ']', ',', values, depth, opts)
+  return new InspectSequence('[', ']', ',', values, ref, depth, opts)
 }
 
 function inspectError (error, depth, opts) {
