@@ -1,0 +1,26 @@
+{
+  "name": "bare-inspect",
+  "version": "1.0.0",
+  "description": "Inspect objects as strings for debugging",
+  "main": "index.js",
+  "files": [
+    "index.js"
+  ],
+  "scripts": {
+    "test": "standard && bare test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/holepunchto/bare-inspect.git"
+  },
+  "author": "Holepunch",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/holepunchto/bare-inspect/issues"
+  },
+  "homepage": "https://github.com/holepunchto/bare-inspect#readme",
+  "devDependencies": {
+    "brittle": "^3.3.2",
+    "standard": "^17.0.0"
+  }
+}
