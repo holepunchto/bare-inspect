@@ -44,3 +44,7 @@ test('recursive array reference', (t) => {
 
   t.is(inspect(foo), '<ref *1> [ [ [Circular *1] ] ]')
 })
+
+test('buffers', (t) => {
+  t.is(inspect(Buffer.from([2, 4, 8, 16])), '<Buffer 02 04 08 10>')
+})

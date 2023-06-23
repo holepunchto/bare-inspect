@@ -84,7 +84,7 @@ class InspectLeaf extends InspectNode {
   }
 
   toString (indent = 0, offset = 0) {
-    return this.value
+    return offset ? this.value : this.indent(indent, this.value)
   }
 }
 
@@ -92,7 +92,7 @@ class InspectPair extends InspectNode {
   constructor (delim, left, right, depth, opts) {
     const length = (
       left.length +
-      delim.length + 1 +
+      delim.length +
       right.length
     )
 
@@ -104,17 +104,17 @@ class InspectPair extends InspectNode {
   }
 
   toString (indent = 0, offset = 0) {
-    return this.indent(indent, this.left + this.delim + ' ' + this.right.toString(indent, this.left.length + this.delim.length))
+    return this.indent(indent, this.left + this.delim + this.right.toString(indent, this.left.length + this.delim.length))
   }
 }
 
 class InspectSequence extends InspectNode {
   constructor (header, footer, delim, values, ref, depth, opts) {
     const length = (
-      ref.length +
-      header.length + 1 +
-      values.reduce((length, value, i) => length + value.length + (i === 0 ? 0 : delim.length + 1), 0) +
-      footer.length + 1
+      (ref ? ref.length : 0) +
+      header.length +
+      values.reduce((length, value, i) => length + value.length + (i === 0 ? 0 : delim.length), 0) +
+      footer.length
     )
 
     super(depth, length, opts)
@@ -132,20 +132,18 @@ class InspectSequence extends InspectNode {
       indent * 2 + this.length > this.breakLength
     )
 
-    const spacer = this.values.length ? ' ' : ''
-
     let string = ''
 
-    if (this.ref.count) {
+    if (this.ref && this.ref.count) {
       string += '<ref *' + this.ref.id + '> '
     }
 
     if (split) {
-      string += this.header + '\n'
+      string += this.header.trimEnd() + '\n'
     } else if (offset) {
-      string += this.header + spacer
+      string += this.header
     } else {
-      string += this.indent(indent, this.header + spacer)
+      string += this.indent(indent, this.header)
     }
 
     for (let i = 0, n = this.values.length; i < n; i++) {
@@ -154,18 +152,18 @@ class InspectSequence extends InspectNode {
       if (split) {
         string += value.toString(indent + 1)
 
-        if (i < n - 1) string += this.delim + '\n'
+        if (i < n - 1) string += this.delim.trimEnd() + '\n'
       } else {
-        if (i > 0) string += this.delim + ' '
+        if (i > 0) string += this.delim
 
         string += value.toString(0, string.length)
       }
     }
 
     if (split) {
-      string += '\n' + this.indent(indent, this.footer)
+      string += '\n' + this.indent(indent, this.footer.trimStart())
     } else {
-      string += spacer + this.footer
+      string += this.footer
     }
 
     return string
@@ -240,6 +238,7 @@ function inspectKey (value, depth, opts) {
 function inspectObject (object, depth, opts) {
   if (object instanceof Array) return inspectArray(object, depth, opts)
   if (object instanceof Error) return inspectError(object, depth, opts)
+  if (object instanceof Buffer) return inspectBuffer(object, depth, opts)
 
   const refs = opts.references
 
@@ -255,10 +254,10 @@ function inspectObject (object, depth, opts) {
   const values = []
 
   for (const key in object) {
-    values.push(new InspectPair(':', inspectKey(key, depth + 1, opts), inspectValue(object[key], depth + 1, opts), depth + 1, opts))
+    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(object[key], depth + 1, opts), depth + 1, opts))
   }
 
-  return new InspectSequence('{', '}', ',', values, ref, depth, opts)
+  return new InspectSequence('{ ', ' }', ', ', values, ref, depth, opts)
 }
 
 function inspectArray (array, depth, opts) {
@@ -281,15 +280,25 @@ function inspectArray (array, depth, opts) {
     if (Number.isInteger(+key)) {
       values.push(value)
     } else {
-      values.push(new InspectPair(':', inspectKey(key, depth + 1, opts), value, depth + 1, opts))
+      values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, opts))
     }
   }
 
-  return new InspectSequence('[', ']', ',', values, ref, depth, opts)
+  return new InspectSequence('[ ', ' ]', ', ', values, ref, depth, opts)
 }
 
 function inspectError (error, depth, opts) {
   return new InspectLeaf(error.stack, null, depth, opts)
+}
+
+function inspectBuffer (buffer, depth, opts) {
+  const values = []
+
+  for (let i = 0, n = buffer.byteLength; i < n; i++) {
+    values.push(new InspectLeaf(buffer[i].toString(16).padStart(2, '0'), null, depth + 1, opts))
+  }
+
+  return new InspectSequence('<Buffer ', '>', ' ', values, null, depth, opts)
 }
 
 function inspectFunction (fn, depth, opts) {
