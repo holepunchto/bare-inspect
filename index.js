@@ -257,7 +257,13 @@ function inspectObject (object, depth, opts) {
     values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(object[key], depth + 1, opts), depth + 1, opts))
   }
 
-  return new InspectSequence('{ ', ' }', ', ', values, ref, depth, opts)
+  let header = '{ '
+
+  if (object.constructor && object.constructor.name !== 'Object') {
+    header = object.constructor.name + ' ' + header
+  }
+
+  return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
 
 function inspectArray (array, depth, opts) {
@@ -302,5 +308,11 @@ function inspectBuffer (buffer, depth, opts) {
 }
 
 function inspectFunction (fn, depth, opts) {
-  return new InspectLeaf('[Function' + (fn.name ? ': ' + fn.name : ' (anonymous)') + ']', null, depth, opts)
+  if (fn.toString().startsWith('class')) return inspectClass(fn, depth, opts)
+
+  return new InspectLeaf('[function ' + (fn.name ? fn.name : '(anonymous)') + ']', null, depth, opts)
+}
+
+function inspectClass (ctor, depth, opts) {
+  return new InspectLeaf('[class ' + (ctor.name ? ctor.name : '(anonymous)') + ']', null, depth, opts)
 }
