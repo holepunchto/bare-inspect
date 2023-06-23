@@ -55,11 +55,26 @@ test('objects', (t) => {
 })
 
 test('arrays', (t) => {
-  t.is(inspect([1, 2, 3, 4]), '[ 1, 2, 3, 4 ]')
+  t.is(inspect([1, 2, 3, 4]), '[ 1, 2, 3, 4 ]', 'short array')
+
+  t.is(inspect(new Array(48).fill().map((_, i) => i)), trim`
+[
+   0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+  40, 41, 42, 43, 44, 45, 46, 47
+]
+  `, 'long array')
 })
 
 test('buffers', (t) => {
-  t.is(inspect(Buffer.from([2, 4, 8, 16])), '<Buffer 02 04 08 10>')
+  t.is(inspect(Buffer.from([2, 4, 8, 16])), '<Buffer 02 04 08 10>', 'short buffer')
+
+  t.is(inspect(Buffer.alloc(48)), trim`
+<Buffer
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+>
+  `, 'long buffer')
 })
 
 test('recursive object reference', (t) => {
@@ -79,3 +94,7 @@ test('recursive array reference', (t) => {
 
   t.is(inspect(foo), '<ref *1> [ [ [Circular *1] ] ]')
 })
+
+function trim (strings, ...substitutions) {
+  return String.raw(strings, ...substitutions).trim()
+}

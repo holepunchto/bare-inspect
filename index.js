@@ -47,6 +47,10 @@ class InspectNode {
     this.breakLength = opts.breakLength
   }
 
+  pad (n, string) {
+    return string.padStart(n, ' ')
+  }
+
   indent (n, string) {
     return '  '.repeat(n) + string
   }
@@ -68,7 +72,7 @@ class InspectRef extends InspectNode {
     return ++this.count
   }
 
-  toString (indent = 0, offset = 0) {
+  toString () {
     return '[Circular *' + this.id + ']'
   }
 }
@@ -83,8 +87,16 @@ class InspectLeaf extends InspectNode {
     this.color = color
   }
 
-  toString (indent = 0, offset = 0) {
-    return offset ? this.value : this.indent(indent, this.value)
+  toString (opts = {}) {
+    const {
+      offset = 0,
+      pad = 0,
+      indent = 0
+    } = opts
+
+    const value = this.pad(pad, this.value)
+
+    return offset ? value : this.indent(indent, value)
   }
 }
 
@@ -103,13 +115,22 @@ class InspectPair extends InspectNode {
     this.right = right
   }
 
-  toString (indent = 0, offset = 0) {
-    return this.indent(indent, this.left + this.delim + this.right.toString(indent, this.left.length + this.delim.length))
+  toString (opts = {}) {
+    const {
+      indent = 0
+    } = opts
+
+    return this.indent(indent, this.left + this.delim + this.right.toString({ indent, offset: this.left.length + this.delim.length }))
   }
 }
 
 class InspectSequence extends InspectNode {
-  constructor (header, footer, delim, values, ref, depth, opts) {
+  constructor (header, footer, delim, values, depth, opts) {
+    const {
+      ref = null,
+      tabulate = false
+    } = opts
+
     const length = (
       (ref ? ref.length : 0) +
       header.length +
@@ -124,9 +145,15 @@ class InspectSequence extends InspectNode {
     this.delim = delim
     this.values = values
     this.ref = ref
+    this.tabulate = tabulate
   }
 
-  toString (indent = 0, offset = 0) {
+  toString (opts = {}) {
+    const {
+      offset = 0,
+      indent = 0
+    } = opts
+
     const split = this.values.length && (
       offset + this.length > this.breakLength ||
       indent * 2 + this.length > this.breakLength
@@ -146,17 +173,43 @@ class InspectSequence extends InspectNode {
       string += this.indent(indent, this.header)
     }
 
+    let columns = 1
+    let pad = 0
+
+    if (this.tabulate) {
+      const widest = this.values.reduce((length, value) => Math.max(length, value.length), 0)
+
+      if (widest) {
+        columns = Math.max(columns, Math.floor((this.breakLength - indent * 2) / (widest + this.delim.length)))
+        pad = widest
+      }
+    }
+
     for (let i = 0, n = this.values.length; i < n; i++) {
       const value = this.values[i]
 
       if (split) {
-        string += value.toString(indent + 1)
+        let part
 
-        if (i < n - 1) string += this.delim.trimEnd() + '\n'
+        if (i % columns === 0) {
+          part = value.toString({ indent: indent + 1, pad })
+        } else {
+          part = value.toString({ pad })
+        }
+
+        string += part
+
+        if (i < n - 1) {
+          if (i % columns === columns - 1) {
+            string += this.delim.trimEnd() + '\n'
+          } else {
+            string += this.delim
+          }
+        }
       } else {
         if (i > 0) string += this.delim
 
-        string += value.toString(0, string.length)
+        string += value.toString({ offset: string.length })
       }
     }
 
@@ -263,7 +316,7 @@ function inspectObject (object, depth, opts) {
     header = object.constructor.name + ' ' + header
   }
 
-  return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
+  return new InspectSequence(header, ' }', ', ', values, depth, { ...opts, ref })
 }
 
 function inspectArray (array, depth, opts) {
@@ -290,7 +343,7 @@ function inspectArray (array, depth, opts) {
     }
   }
 
-  return new InspectSequence('[ ', ' ]', ', ', values, ref, depth, opts)
+  return new InspectSequence('[ ', ' ]', ', ', values, depth, { ...opts, ref, tabulate: true })
 }
 
 function inspectError (error, depth, opts) {
@@ -304,7 +357,7 @@ function inspectBuffer (buffer, depth, opts) {
     values.push(new InspectLeaf(buffer[i].toString(16).padStart(2, '0'), null, depth + 1, opts))
   }
 
-  return new InspectSequence('<Buffer ', '>', ' ', values, null, depth, opts)
+  return new InspectSequence('<Buffer ', '>', ' ', values, depth, { ...opts, tabulate: true })
 }
 
 function inspectFunction (fn, depth, opts) {
