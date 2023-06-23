@@ -72,8 +72,16 @@ class InspectRef extends InspectNode {
     return ++this.count
   }
 
-  toString () {
-    return '[Circular *' + this.id + ']'
+  toString (opts = {}) {
+    const {
+      offset = 0,
+      pad = 0,
+      indent = 0
+    } = opts
+
+    const value = this.pad(pad, '[Circular *' + this.id + ']')
+
+    return offset ? value : this.indent(indent, value)
   }
 }
 
@@ -159,19 +167,25 @@ class InspectSequence extends InspectNode {
       indent * 2 + this.length > this.breakLength
     )
 
-    let string = ''
+    let header = this.header
+
+    if (this.values.length === 0) {
+      header = header.trimEnd()
+    }
 
     if (this.ref && this.ref.count) {
-      string += '<ref *' + this.ref.id + '> '
+      header = '<ref *' + this.ref.id + '> ' + header
+    }
+
+    if (offset === 0) {
+      header = this.indent(indent, header)
     }
 
     if (split) {
-      string += this.header.trimEnd() + '\n'
-    } else if (offset) {
-      string += this.header
-    } else {
-      string += this.indent(indent, this.header)
+      header = header.trimEnd() + '\n'
     }
+
+    let string = header
 
     let columns = 1
     let pad = 0
@@ -181,7 +195,8 @@ class InspectSequence extends InspectNode {
 
       if (widest) {
         columns = Math.max(columns, Math.floor((this.breakLength - indent * 2) / (widest + this.delim.length)))
-        pad = widest
+
+        if (columns > 1) pad = widest
       }
     }
 
@@ -213,10 +228,16 @@ class InspectSequence extends InspectNode {
       }
     }
 
+    let footer = this.footer
+
+    if (this.values.length === 0) {
+      footer = footer.trimStart()
+    }
+
     if (split) {
-      string += '\n' + this.indent(indent, this.footer.trimStart())
+      string += '\n' + this.indent(indent, footer.trimStart())
     } else {
-      string += this.footer
+      string += footer
     }
 
     return string
@@ -312,8 +333,12 @@ function inspectObject (object, depth, opts) {
 
   let header = '{ '
 
-  if (object.constructor && object.constructor.name !== 'Object') {
-    header = object.constructor.name + ' ' + header
+  if (object.constructor) {
+    const name = object.constructor.name
+
+    if (name && name !== 'Object') {
+      header = object.constructor.name + ' ' + header
+    }
   }
 
   return new InspectSequence(header, ' }', ', ', values, depth, { ...opts, ref })

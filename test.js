@@ -48,13 +48,21 @@ test('class instances', (t) => {
   }
 
   t.is(inspect(new Foo()), 'Foo { hello: \'world\' }', 'named class')
+
+  class Bar {}
+
+  t.is(inspect(new Bar()), 'Bar {}', 'empty class')
 })
 
 test('objects', (t) => {
+  t.is(inspect({}), '{}', 'empty object')
+
   t.is(inspect({ hello: 'world' }), '{ hello: \'world\' }')
 })
 
 test('arrays', (t) => {
+  t.is(inspect([]), '[]', 'empty array')
+
   t.is(inspect([1, 2, 3, 4]), '[ 1, 2, 3, 4 ]', 'short array')
 
   t.is(inspect(new Array(48).fill().map((_, i) => i)), trim`
