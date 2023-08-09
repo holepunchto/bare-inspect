@@ -22,7 +22,7 @@ class InspectRefMap {
   }
 
   get (object) {
-    return this.refs.get(object)
+    return this.refs.get(object) || null
   }
 
   set (object, ref) {
@@ -62,6 +62,7 @@ class InspectRef extends InspectNode {
 
     this.refs = opts.references
     this.count = 0
+    this.circular = false
   }
 
   get id () {
@@ -70,6 +71,10 @@ class InspectRef extends InspectNode {
 
   increment () {
     return ++this.count
+  }
+
+  decrement () {
+    return --this.count
   }
 
   toString (opts = {}) {
@@ -169,12 +174,12 @@ class InspectSequence extends InspectNode {
 
     let header = this.header
 
-    if (this.values.length === 0) {
-      header = header.trimEnd()
+    if (this.ref && this.ref.circular) {
+      header = '<ref *' + this.ref.id + '> ' + header
     }
 
-    if (this.ref && this.ref.count) {
-      header = '<ref *' + this.ref.id + '> ' + header
+    if (this.values.length === 0) {
+      header = header.trimEnd()
     }
 
     if (offset === 0) {
@@ -317,19 +322,23 @@ function inspectObject (object, depth, opts) {
   const refs = opts.references
 
   let ref = refs.get(object)
-  if (ref) {
-    ref.increment()
+  if (ref === null) {
+    ref = new InspectRef(depth, opts)
+    refs.set(object, ref)
+  } else if (ref.count) {
+    ref.circular = true
     return ref
   }
 
-  ref = new InspectRef(depth, opts)
-  refs.set(object, ref)
+  ref.increment()
 
   const values = []
 
   for (const key in object) {
     values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(object[key], depth + 1, opts), depth + 1, opts))
   }
+
+  ref.decrement()
 
   let header = '{ '
 
@@ -348,13 +357,15 @@ function inspectArray (array, depth, opts) {
   const refs = opts.references
 
   let ref = refs.get(array)
-  if (ref) {
-    ref.increment()
+  if (ref === null) {
+    ref = new InspectRef(depth, opts)
+    refs.set(array, ref)
+  } else if (ref.count) {
+    ref.circular = true
     return ref
   }
 
-  ref = new InspectRef(depth, opts)
-  refs.set(array, ref)
+  ref.increment()
 
   const values = []
 
@@ -367,6 +378,8 @@ function inspectArray (array, depth, opts) {
       values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, opts))
     }
   }
+
+  ref.decrement()
 
   return new InspectSequence('[ ', ' ]', ', ', values, depth, { ...opts, ref, tabulate: true })
 }

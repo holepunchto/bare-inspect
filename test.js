@@ -103,6 +103,20 @@ test('recursive array reference', (t) => {
   t.is(inspect(foo), '<ref *1> [ [ [Circular *1] ] ]')
 })
 
+test('object with same reference twice', (t) => {
+  const foo = {}
+  const bar = { 1: foo, 2: foo }
+
+  t.is(inspect(bar), '{ 1: {}, 2: {} }')
+})
+
+test('array with same reference twice', (t) => {
+  const foo = {}
+  const bar = [foo, foo]
+
+  t.is(inspect(bar), '[ {}, {} ]')
+})
+
 function trim (strings, ...substitutions) {
   return String.raw(strings, ...substitutions).trim()
 }
