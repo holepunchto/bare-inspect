@@ -58,7 +58,7 @@ class InspectNode {
 
 class InspectRef extends InspectNode {
   constructor (depth, opts) {
-    super(depth, '[Circular]'.length, opts)
+    super(depth, '[circular *]'.length, opts)
 
     this.refs = opts.references
     this.count = 0
@@ -84,7 +84,7 @@ class InspectRef extends InspectNode {
       indent = 0
     } = opts
 
-    const value = this.pad(pad, '[Circular *' + this.id + ']')
+    const value = this.pad(pad, '[circular *' + this.id + ']')
 
     return offset ? value : this.indent(indent, value)
   }

@@ -91,7 +91,7 @@ test('recursive object reference', (t) => {
 
   foo.bar = bar
 
-  t.is(inspect(foo), '<ref *1> { bar: { foo: [Circular *1] } }')
+  t.is(inspect(foo), '<ref *1> { bar: { foo: [circular *1] } }')
 })
 
 test('recursive array reference', (t) => {
@@ -100,7 +100,7 @@ test('recursive array reference', (t) => {
 
   foo[0] = bar
 
-  t.is(inspect(foo), '<ref *1> [ [ [Circular *1] ] ]')
+  t.is(inspect(foo), '<ref *1> [ [ [circular *1] ] ]')
 })
 
 test('object with same reference twice', (t) => {
