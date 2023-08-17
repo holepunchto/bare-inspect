@@ -1,11 +1,16 @@
+const ansiEscapes = require('bare-ansi-escapes')
+
+const PLAIN_KEY = /^[a-zA-Z_][a-zA-Z_0-9]*$/
+
 module.exports = function inspect (value, opts = {}) {
   const {
+    colors = false,
     breakLength = 80
   } = opts
 
   const references = new InspectRefMap()
 
-  const tree = inspectValue(value, 0, { breakLength, references })
+  const tree = inspectValue(value, 0, { colors, breakLength, references })
 
   return tree.toString()
 }
@@ -97,7 +102,7 @@ class InspectLeaf extends InspectNode {
     super(depth, length, opts)
 
     this.value = value
-    this.color = color
+    this.color = opts.colors && color
   }
 
   toString (opts = {}) {
@@ -107,7 +112,9 @@ class InspectLeaf extends InspectNode {
       indent = 0
     } = opts
 
-    const value = this.pad(pad, this.value)
+    let value = this.pad(pad, this.value)
+
+    if (this.color) value = this.color + value + ansiEscapes.modifierReset
 
     return offset ? value : this.indent(indent, value)
   }
@@ -145,7 +152,7 @@ class InspectSequence extends InspectNode {
     } = opts
 
     const length = (
-      (ref ? ref.length : 0) +
+      (ref && ref.circular ? '<ref *>'.length + 1 : 0) +
       header.length +
       values.reduce((length, value, i) => length + value.length + (i === 0 ? 0 : delim.length), 0) +
       footer.length
@@ -265,15 +272,15 @@ function inspectValue (value, depth, opts) {
 }
 
 function inspectUndefined (depth, opts) {
-  return new InspectLeaf('undefined', null, depth, opts)
+  return new InspectLeaf('undefined', ansiEscapes.colorBlack, depth, opts)
 }
 
 function inspectNull (depth, opts) {
-  return new InspectLeaf('null', null, depth, opts)
+  return new InspectLeaf('null', ansiEscapes.modifierBold, depth, opts)
 }
 
 function inspectBoolean (value, depth, opts) {
-  return new InspectLeaf(value.toString(), null, depth, opts)
+  return new InspectLeaf(value.toString(), ansiEscapes.colorYellow, depth, opts)
 }
 
 function inspectNumber (value, depth, opts) {
@@ -285,11 +292,11 @@ function inspectNumber (value, depth, opts) {
     string = value.toString(10)
   }
 
-  return new InspectLeaf(string, null, depth, opts)
+  return new InspectLeaf(string, ansiEscapes.colorYellow, depth, opts)
 }
 
 function inspectBigInt (value, depth, opts) {
-  return new InspectLeaf(value.toString(10) + 'n', null, depth, opts)
+  return new InspectLeaf(value.toString(10) + 'n', ansiEscapes.colorYellow, depth, opts)
 }
 
 function inspectString (value, depth, opts) {
@@ -303,15 +310,19 @@ function inspectString (value, depth, opts) {
     .replace(/[\r]/g, '\\r')
     .replace(/[\t]/g, '\\t')
 
-  return new InspectLeaf('\'' + string + '\'', null, depth, opts)
+  return new InspectLeaf('\'' + string + '\'', ansiEscapes.colorGreen, depth, opts)
 }
 
 function inspectSymbol (value, depth, opts) {
-  return new InspectLeaf(value.toString(), null, depth, opts)
+  return new InspectLeaf(value.toString(), ansiEscapes.colorGreen, depth, opts)
 }
 
 function inspectKey (value, depth, opts) {
-  return new InspectLeaf(value, null, depth, opts)
+  if (PLAIN_KEY.test(value)) {
+    return new InspectLeaf(value, null, depth, opts)
+  } else {
+    return inspectValue(value, depth, opts)
+  }
 }
 
 function inspectObject (object, depth, opts) {
@@ -401,9 +412,9 @@ function inspectBuffer (buffer, depth, opts) {
 function inspectFunction (fn, depth, opts) {
   if (fn.toString().startsWith('class')) return inspectClass(fn, depth, opts)
 
-  return new InspectLeaf('[function ' + (fn.name ? fn.name : '(anonymous)') + ']', null, depth, opts)
+  return new InspectLeaf('[function ' + (fn.name ? fn.name : '(anonymous)') + ']', ansiEscapes.colorCyan, depth, opts)
 }
 
 function inspectClass (ctor, depth, opts) {
-  return new InspectLeaf('[class ' + (ctor.name ? ctor.name : '(anonymous)') + ']', null, depth, opts)
+  return new InspectLeaf('[class ' + (ctor.name ? ctor.name : '(anonymous)') + ']', ansiEscapes.colorCyan, depth, opts)
 }

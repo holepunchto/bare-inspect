@@ -107,7 +107,7 @@ test('object with same reference twice', (t) => {
   const foo = {}
   const bar = { 1: foo, 2: foo }
 
-  t.is(inspect(bar), '{ 1: {}, 2: {} }')
+  t.is(inspect(bar), '{ \'1\': {}, \'2\': {} }')
 })
 
 test('array with same reference twice', (t) => {

@@ -19,6 +19,9 @@
     "url": "https://github.com/holepunchto/bare-inspect/issues"
   },
   "homepage": "https://github.com/holepunchto/bare-inspect#readme",
+  "dependencies": {
+    "bare-ansi-escapes": "^1.2.0"
+  },
   "devDependencies": {
     "brittle": "^3.3.2",
     "standard": "^17.0.0"
