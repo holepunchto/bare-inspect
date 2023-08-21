@@ -212,7 +212,7 @@ class InspectSequence extends InspectNode {
       }
     }
 
-    for (let i = 0, n = this.values.length; i < n; i++) {
+    for (let i = 0, n = this.values.length, offset = 0; i < n; i++) {
       const value = this.values[i]
 
       if (split) {
@@ -236,7 +236,9 @@ class InspectSequence extends InspectNode {
       } else {
         if (i > 0) string += this.delim
 
-        string += value.toString({ offset: string.length })
+        string += value.toString({ offset })
+
+        offset += value.length
       }
     }
 
