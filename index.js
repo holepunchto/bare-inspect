@@ -145,14 +145,13 @@ class InspectPair extends InspectNode {
 }
 
 class InspectSequence extends InspectNode {
-  constructor (header, footer, delim, values, depth, opts) {
+  constructor (header, footer, delim, values, ref, depth, opts) {
     const {
-      ref = null,
       tabulate = false
     } = opts
 
     const length = (
-      (ref && ref.circular ? '<ref *>'.length + 1 : 0) +
+      (ref.circular ? '<ref *>'.length + 1 : 0) +
       header.length +
       values.reduce((length, value, i) => length + value.length + (i === 0 ? 0 : delim.length), 0) +
       footer.length
@@ -181,7 +180,7 @@ class InspectSequence extends InspectNode {
 
     let header = this.header
 
-    if (this.ref && this.ref.circular) {
+    if (this.ref.circular) {
       header = '<ref *' + this.ref.id + '> ' + header
     }
 
@@ -329,8 +328,25 @@ function inspectKey (value, depth, opts) {
 
 function inspectObject (object, depth, opts) {
   if (object instanceof Array) return inspectArray(object, depth, opts)
-  if (object instanceof Error) return inspectError(object, depth, opts)
+  if (object instanceof ArrayBuffer) return inspectArrayBuffer(object, depth, opts)
   if (object instanceof Buffer) return inspectBuffer(object, depth, opts)
+  if (
+    object instanceof Int8Array ||
+    object instanceof Uint8Array ||
+    object instanceof Uint8ClampedArray ||
+    object instanceof Int16Array ||
+    object instanceof Uint16Array ||
+    object instanceof Int32Array ||
+    object instanceof Uint32Array ||
+    object instanceof Float32Array ||
+    object instanceof Float64Array ||
+    object instanceof BigInt64Array ||
+    object instanceof BigUint64Array
+  ) {
+    return inspectArrayView(object, depth, opts)
+  }
+  if (object instanceof DataView) return inspectDataView(object, depth, opts)
+  if (object instanceof Error) return inspectError(object, depth, opts)
 
   const refs = opts.references
 
@@ -363,7 +379,7 @@ function inspectObject (object, depth, opts) {
     }
   }
 
-  return new InspectSequence(header, ' }', ', ', values, depth, { ...opts, ref })
+  return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
 
 function inspectArray (array, depth, opts) {
@@ -394,21 +410,119 @@ function inspectArray (array, depth, opts) {
 
   ref.decrement()
 
-  return new InspectSequence('[ ', ' ]', ', ', values, depth, { ...opts, ref, tabulate: true })
+  return new InspectSequence('[ ', ' ]', ', ', values, ref, depth, { ...opts, tabulate: true })
 }
 
-function inspectError (error, depth, opts) {
-  return new InspectLeaf(error.stack, null, depth, opts)
+function inspectArrayBuffer (arrayBuffer, depth, opts) {
+  const refs = opts.references
+
+  let ref = refs.get(arrayBuffer)
+  if (ref === null) {
+    ref = new InspectRef(depth, opts)
+    refs.set(arrayBuffer, ref)
+  } else if (ref.count) {
+    ref.circular = true
+    return ref
+  }
+
+  ref.increment()
+
+  const values = []
+
+  for (const key of ['byteLength']) {
+    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(arrayBuffer[key], depth + 1, opts), depth + 1, opts))
+  }
+
+  return new InspectSequence('ArrayBuffer { ', ' }', ', ', values, ref, depth, opts)
 }
 
 function inspectBuffer (buffer, depth, opts) {
-  const values = []
+  const refs = opts.references
 
-  for (let i = 0, n = buffer.byteLength; i < n; i++) {
-    values.push(new InspectLeaf(buffer[i].toString(16).padStart(2, '0'), null, depth + 1, opts))
+  let ref = refs.get(buffer)
+  if (ref === null) {
+    ref = new InspectRef(depth, opts)
+    refs.set(buffer, ref)
+  } else if (ref.count) {
+    ref.circular = true
+    return ref
   }
 
-  return new InspectSequence('<Buffer ', '>', ' ', values, depth, { ...opts, tabulate: true })
+  ref.increment()
+
+  const values = []
+
+  for (const key in buffer) {
+    if (Number.isInteger(+key)) {
+      values.push(new InspectLeaf(buffer[key].toString(16).padStart(2, '0'), null, depth + 1, opts))
+    } else {
+      values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(buffer[key], depth + 1, opts), depth + 1, opts))
+    }
+  }
+
+  return new InspectSequence('<Buffer ', '>', ' ', values, ref, depth, { ...opts, tabulate: true })
+}
+
+function inspectArrayView (arrayView, depth, opts) {
+  const refs = opts.references
+
+  let ref = refs.get(arrayView)
+  if (ref === null) {
+    ref = new InspectRef(depth, opts)
+    refs.set(arrayView, ref)
+  } else if (ref.count) {
+    ref.circular = true
+    return ref
+  }
+
+  ref.increment()
+
+  const values = []
+
+  for (const key in arrayView) {
+    const value = inspectValue(arrayView[key], depth + 1, opts)
+
+    if (Number.isInteger(+key)) {
+      values.push(value)
+    } else {
+      values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, opts))
+    }
+  }
+
+  ref.decrement()
+
+  const header = arrayView.constructor.name + '(' + arrayView.length + ') [ '
+
+  return new InspectSequence(header, ' ]', ', ', values, ref, depth, { ...opts, tabulate: true })
+}
+
+function inspectDataView (dataView, depth, opts) {
+  const refs = opts.references
+
+  let ref = refs.get(dataView)
+  if (ref === null) {
+    ref = new InspectRef(depth, opts)
+    refs.set(dataView, ref)
+  } else if (ref.count) {
+    ref.circular = true
+    return ref
+  }
+
+  ref.increment()
+
+  const values = []
+
+  for (const key of ['byteLength', 'byteOffset', 'buffer']) {
+    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(dataView[key], depth + 1, opts), depth + 1, opts))
+  }
+
+  for (const key in dataView) {
+    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(dataView[key], depth + 1, opts), depth + 1, opts))
+  }
+
+  ref.decrement()
+
+  return new InspectSequence('DataView { ', ' }', ', ', values, ref, depth, opts)
 }
 
 function inspectFunction (fn, depth, opts) {
@@ -419,4 +533,8 @@ function inspectFunction (fn, depth, opts) {
 
 function inspectClass (ctor, depth, opts) {
   return new InspectLeaf('[class ' + (ctor.name ? ctor.name : '(anonymous)') + ']', ansiEscapes.colorCyan, depth, opts)
+}
+
+function inspectError (error, depth, opts) {
+  return new InspectLeaf(error.stack, null, depth, opts)
 }

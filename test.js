@@ -74,6 +74,10 @@ test('arrays', (t) => {
   `, 'long array')
 })
 
+test('array views', (t) => {
+  t.is(inspect(new ArrayBuffer(4)), 'ArrayBuffer { byteLength: 4 }')
+})
+
 test('buffers', (t) => {
   t.is(inspect(Buffer.from([2, 4, 8, 16])), '<Buffer 02 04 08 10>', 'short buffer')
 
@@ -83,6 +87,24 @@ test('buffers', (t) => {
   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 >
   `, 'long buffer')
+})
+
+test('typed arrays', (t) => {
+  t.is(inspect(Int8Array.from([2, 4, 8, 16])), 'Int8Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(Uint8Array.from([2, 4, 8, 16])), 'Uint8Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(Uint8ClampedArray.from([2, 4, 8, 16])), 'Uint8ClampedArray(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(Int16Array.from([2, 4, 8, 16])), 'Int16Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(Uint16Array.from([2, 4, 8, 16])), 'Uint16Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(Int32Array.from([2, 4, 8, 16])), 'Int32Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(Uint32Array.from([2, 4, 8, 16])), 'Uint32Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(Float32Array.from([2, 4, 8, 16])), 'Float32Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(Float64Array.from([2, 4, 8, 16])), 'Float64Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(BigInt64Array.from([2n, 4n, 8n, 16n])), 'BigInt64Array(4) [ 2n, 4n, 8n, 16n ]')
+  t.is(inspect(BigUint64Array.from([2n, 4n, 8n, 16n])), 'BigUint64Array(4) [ 2n, 4n, 8n, 16n ]')
+})
+
+test('data view', (t) => {
+  t.is(inspect(new DataView(new ArrayBuffer(4))), 'DataView { byteLength: 4, byteOffset: 0, buffer: ArrayBuffer { byteLength: 4 } }')
 })
 
 test('recursive object reference', (t) => {
@@ -101,6 +123,20 @@ test('recursive array reference', (t) => {
   foo[0] = bar
 
   t.is(inspect(foo), '<ref *1> [ [ [circular *1] ] ]')
+})
+
+test('recursive buffer reference', (t) => {
+  const buf = Buffer.alloc(4)
+  buf.buf = buf
+
+  t.is(inspect(buf), '<ref *1> <Buffer 00 00 00 00 buf: [circular *1]>')
+})
+
+test('recursive typed array reference', (t) => {
+  const arr = new Uint8Array(4)
+  arr.arr = arr
+
+  t.is(inspect(arr), '<ref *1> Uint8Array(4) [ 0, 0, 0, 0, arr: [circular *1] ]')
 })
 
 test('object with same reference twice', (t) => {
