@@ -154,15 +154,20 @@ test('array with same reference twice', (t) => {
 })
 
 test('custom inspect method', (t) => {
+  t.plan(2)
+
   class Foo {
     constructor () {
       this.foo = true
     }
 
     [Symbol.for('bare.inspect')] (depth, opts, inspect) {
-      const foo = { __proto__: { constructor: Foo } }
-      foo.bar = false
-      return foo
+      t.ok(this instanceof Foo)
+
+      return {
+        __proto__: { constructor: Foo },
+        bar: false
+      }
     }
   }
 

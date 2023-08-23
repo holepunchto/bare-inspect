@@ -341,7 +341,8 @@ function inspectObject (object, depth, opts) {
   const inspect = object[Symbol.for('bare.inspect')]
 
   if (typeof inspect === 'function') {
-    const value = inspect(
+    const value = inspect.call(
+      object,
       opts.depth === null ? null : opts.depth - depth,
       {
         colors: opts.colors,
