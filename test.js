@@ -153,6 +153,22 @@ test('array with same reference twice', (t) => {
   t.is(inspect(bar), '[ {}, {} ]')
 })
 
+test('custom inspect method', (t) => {
+  class Foo {
+    constructor () {
+      this.foo = true
+    }
+
+    [Symbol.for('bare.inspect')] (depth, opts, inspect) {
+      const foo = { __proto__: { constructor: Foo } }
+      foo.bar = false
+      return foo
+    }
+  }
+
+  t.is(inspect(new Foo()), 'Foo { bar: false }')
+})
+
 function trim (strings, ...substitutions) {
   return String.raw(strings, ...substitutions).trim()
 }

@@ -2,7 +2,7 @@ const ansiEscapes = require('bare-ansi-escapes')
 
 const PLAIN_KEY = /^[a-zA-Z_][a-zA-Z_0-9]*$/
 
-module.exports = function inspect (value, opts = {}) {
+module.exports = exports = function inspect (value, opts = {}) {
   const {
     colors = false,
     breakLength = 80
@@ -338,6 +338,25 @@ function inspectObject (object, depth, opts) {
     return ref
   }
 
+  const inspect = object[Symbol.for('bare.inspect')]
+
+  if (typeof inspect === 'function') {
+    const value = inspect(
+      opts.depth === null ? null : opts.depth - depth,
+      {
+        colors: opts.colors,
+        breakLength: opts.breakLength
+      },
+      exports
+    )
+
+    if (typeof value !== 'string') {
+      return inspectValue(value, depth, opts)
+    }
+
+    return new InspectLeaf(value, null, depth, opts)
+  }
+
   if (object instanceof Array) return inspectArray(object, ref, depth, opts)
   if (object instanceof ArrayBuffer) return inspectArrayBuffer(object, ref, depth, opts)
   if (object instanceof Buffer) return inspectBuffer(object, ref, depth, opts)
@@ -364,6 +383,8 @@ function inspectObject (object, depth, opts) {
   const values = []
 
   for (const key in object) {
+    if (key === 'constructor') continue
+
     values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(object[key], depth + 1, opts), depth + 1, opts))
   }
 
@@ -388,6 +409,8 @@ function inspectArray (array, ref, depth, opts) {
   const values = []
 
   for (const key in array) {
+    if (key === 'constructor') continue
+
     const value = inspectValue(array[key], depth + 1, opts)
 
     if (Number.isInteger(+key)) {
@@ -422,6 +445,8 @@ function inspectBuffer (buffer, ref, depth, opts) {
   const values = []
 
   for (const key in buffer) {
+    if (key === 'constructor') continue
+
     if (Number.isInteger(+key)) {
       values.push(new InspectLeaf(buffer[key].toString(16).padStart(2, '0'), null, depth + 1, opts))
     } else {
@@ -440,6 +465,8 @@ function inspectArrayView (arrayView, ref, depth, opts) {
   const values = []
 
   for (const key in arrayView) {
+    if (key === 'constructor') continue
+
     const value = inspectValue(arrayView[key], depth + 1, opts)
 
     if (Number.isInteger(+key)) {
@@ -466,6 +493,8 @@ function inspectDataView (dataView, ref, depth, opts) {
   }
 
   for (const key in dataView) {
+    if (key === 'constructor') continue
+
     values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(dataView[key], depth + 1, opts), depth + 1, opts))
   }
 
