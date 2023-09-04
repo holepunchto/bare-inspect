@@ -54,6 +54,10 @@ test('class instances', (t) => {
   t.is(inspect(new Bar()), 'Bar {}', 'empty class')
 })
 
+test('dates', (t) => {
+  t.is(inspect(new Date('2000-01-02')), '2000-01-02T00:00:00.000Z')
+})
+
 test('objects', (t) => {
   t.is(inspect({}), '{}', 'empty object')
 
