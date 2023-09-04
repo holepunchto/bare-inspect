@@ -351,11 +351,7 @@ function inspectObject (object, depth, opts) {
       exports
     )
 
-    if (typeof value !== 'string') {
-      return inspectValue(value, depth, opts)
-    }
-
-    return new InspectLeaf(value, null, depth, opts)
+    return inspectValue(value, depth, opts)
   }
 
   if (object instanceof Date) return inspectDate(object, ref, depth, opts)
