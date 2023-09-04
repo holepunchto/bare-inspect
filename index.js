@@ -359,6 +359,7 @@ function inspectObject (object, depth, opts) {
   }
 
   if (object instanceof Date) return inspectDate(object, ref, depth, opts)
+  if (object instanceof RegExp) return inspectRegExp(object, ref, depth, opts)
   if (object instanceof Array) return inspectArray(object, ref, depth, opts)
   if (object instanceof ArrayBuffer) return inspectArrayBuffer(object, ref, depth, opts)
   if (object instanceof Buffer) return inspectBuffer(object, ref, depth, opts)
@@ -407,6 +408,10 @@ function inspectObject (object, depth, opts) {
 
 function inspectDate (date, ref, depth, opts) {
   return new InspectLeaf(date.toISOString(), ansiEscapes.colorMagenta, depth, opts)
+}
+
+function inspectRegExp (regExp, ref, depth, opts) {
+  return new InspectLeaf(regExp.toString(), ansiEscapes.colorRed, depth, opts)
 }
 
 function inspectArray (array, ref, depth, opts) {

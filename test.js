@@ -58,6 +58,10 @@ test('dates', (t) => {
   t.is(inspect(new Date('2000-01-02')), '2000-01-02T00:00:00.000Z')
 })
 
+test('regular expressions', (t) => {
+  t.is(inspect(/regExp/gi), '/regExp/gi')
+})
+
 test('objects', (t) => {
   t.is(inspect({}), '{}', 'empty object')
 
