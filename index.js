@@ -68,6 +68,7 @@ class InspectRef extends InspectNode {
     this.refs = opts.references
     this.count = 0
     this.circular = false
+    this.color = opts.colors && ansiEscapes.colorCyan
   }
 
   get id () {
@@ -89,7 +90,9 @@ class InspectRef extends InspectNode {
       indent = 0
     } = opts
 
-    const value = this.pad(pad, '[circular *' + this.id + ']')
+    let value = this.pad(pad, '[circular *' + this.id + ']')
+
+    if (this.color) value = this.color + value + ansiEscapes.modifierReset
 
     return offset ? value : this.indent(indent, value)
   }
