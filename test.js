@@ -184,8 +184,6 @@ test('custom inspect method', (t) => {
 
 test('custom inspect method with cycle', (t) => {
   class Foo {
-    constructor () {}
-
     [Symbol.for('bare.inspect')] () {
       return {
         __proto__: { constructor: Foo },
