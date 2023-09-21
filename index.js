@@ -354,6 +354,8 @@ function inspectObject (object, depth, opts) {
       exports
     )
 
+    refs.set(value, ref)
+
     return inspectValue(value, depth, opts)
   }
 

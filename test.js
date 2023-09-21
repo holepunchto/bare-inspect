@@ -182,6 +182,21 @@ test('custom inspect method', (t) => {
   t.is(inspect(new Foo()), 'Foo { bar: false }')
 })
 
+test('custom inspect method with cycle', (t) => {
+  class Foo {
+    constructor () {}
+
+    [Symbol.for('bare.inspect')] () {
+      return {
+        __proto__: { constructor: Foo },
+        self: this
+      }
+    }
+  }
+
+  t.is(inspect(new Foo()), '<ref *1> Foo { self: [circular *1] }')
+})
+
 function trim (strings, ...substitutions) {
   return String.raw(strings, ...substitutions).trim()
 }
