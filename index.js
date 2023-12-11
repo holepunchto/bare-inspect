@@ -276,7 +276,7 @@ function inspectValue (value, depth, opts) {
 }
 
 function inspectUndefined (depth, opts) {
-  return new InspectLeaf('undefined', ansiEscapes.colorBlack, depth, opts)
+  return new InspectLeaf('undefined', ansiEscapes.colorGrey, depth, opts)
 }
 
 function inspectNull (depth, opts) {

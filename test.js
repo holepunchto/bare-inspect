@@ -195,6 +195,10 @@ test('custom inspect method with cycle', (t) => {
   t.is(inspect(new Foo()), '<ref *1> Foo { self: [circular *1] }')
 })
 
+test('undefined', (t) => {
+  t.is(inspect(undefined), 'undefined', 'undefined')
+})
+
 function trim (strings, ...substitutions) {
   return String.raw(strings, ...substitutions).trim()
 }
