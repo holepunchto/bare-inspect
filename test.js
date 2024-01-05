@@ -195,6 +195,16 @@ test('custom inspect method with cycle', (t) => {
   t.is(inspect(new Foo()), '<ref *1> Foo { self: [circular *1] }')
 })
 
+test('promise', (t) => {
+  t.plan(4)
+
+  t.is(inspect(Promise.resolve(42)), 'Promise { 42 }', 'resolved')
+  t.is(inspect(Promise.reject(42)), 'Promise { <rejected> 42 }', 'rejected')
+  t.is(inspect(new Promise((resolve) => queueMicrotask(resolve))), 'Promise { <pending> }', 'pending')
+
+  Bare.once('unhandledRejection', () => t.pass('caught'))
+})
+
 test('undefined', (t) => {
   t.is(inspect(undefined), 'undefined', 'undefined')
 })

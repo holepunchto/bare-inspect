@@ -4,7 +4,11 @@
   "description": "Inspect objects as strings for debugging",
   "main": "index.js",
   "files": [
-    "index.js"
+    "index.js",
+    "binding.c",
+    "binding.js",
+    "CMakeLists.txt",
+    "prebuilds"
   ],
   "scripts": {
     "test": "standard && bare test.js"

@@ -1,4 +1,5 @@
 const ansiEscapes = require('bare-ansi-escapes')
+const binding = require('./binding')
 
 const PLAIN_KEY = /^[a-zA-Z_][a-zA-Z_0-9]*$/
 
@@ -381,6 +382,7 @@ function inspectObject (object, depth, opts) {
   }
   if (object instanceof DataView) return inspectDataView(object, ref, depth, opts)
   if (object instanceof Error) return inspectError(object, ref, depth, opts)
+  if (object instanceof Promise) return inspectPromise(object, ref, depth, opts)
 
   ref.increment()
 
@@ -517,6 +519,31 @@ function inspectDataView (dataView, ref, depth, opts) {
 
 function inspectError (error, ref, depth, opts) {
   return new InspectLeaf(error.stack, null, depth, opts)
+}
+
+function inspectPromise (promise, ref, depth, opts) {
+  ref.increment()
+
+  const state = binding.getPromiseState(promise)
+
+  const values = []
+
+  switch (state) {
+    case 0: // Pending
+      values.push(new InspectLeaf('<pending>', ansiEscapes.colorCyan, depth, opts))
+      break
+
+    case 1: // Fulfilled
+      values.push(inspectValue(binding.getPromiseResult(promise), depth, opts))
+      break
+
+    case 2: // Rejected
+      values.push(new InspectLeaf('<rejected>', ansiEscapes.colorCyan, depth, opts), inspectValue(binding.getPromiseResult(promise), depth, opts))
+  }
+
+  ref.decrement()
+
+  return new InspectSequence('Promise { ', ' }', ' ', values, ref, depth, opts)
 }
 
 function inspectFunction (fn, depth, opts) {
