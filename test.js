@@ -1,3 +1,4 @@
+/* global Bare */
 const test = require('brittle')
 const inspect = require('.')
 
@@ -199,7 +200,7 @@ test('promise', (t) => {
   t.plan(4)
 
   t.is(inspect(Promise.resolve(42)), 'Promise { 42 }', 'resolved')
-  t.is(inspect(Promise.reject(42)), 'Promise { <rejected> 42 }', 'rejected')
+  t.is(inspect(Promise.reject(42)), 'Promise { <rejected> 42 }', 'rejected') // eslint-disable-line prefer-promise-reject-errors
   t.is(inspect(new Promise((resolve) => queueMicrotask(resolve))), 'Promise { <pending> }', 'pending')
 
   Bare.once('unhandledRejection', () => t.pass('caught'))
