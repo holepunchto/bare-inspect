@@ -7,7 +7,7 @@ include(bare)
 add_bare_module(bare_inspect)
 
 target_sources(
-  bare_inspect
+  ${bare_inspect}
   PRIVATE
     binding.c
 )
