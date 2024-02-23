@@ -196,6 +196,27 @@ test('custom inspect method with cycle', (t) => {
   t.is(inspect(new Foo()), '<ref *1> Foo { self: [circular *1] }')
 })
 
+test('custom inspect method, Node.js compatibility', (t) => {
+  t.plan(2)
+
+  class Foo {
+    constructor () {
+      this.foo = true
+    }
+
+    [Symbol.for('nodejs.util.inspect.custom')] (depth, opts, inspect) {
+      t.ok(this instanceof Foo)
+
+      return {
+        __proto__: { constructor: Foo },
+        bar: false
+      }
+    }
+  }
+
+  t.is(inspect(new Foo()), 'Foo { bar: false }')
+})
+
 test('promise', (t) => {
   t.plan(4)
 

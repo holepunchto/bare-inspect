@@ -342,7 +342,7 @@ function inspectObject (object, depth, opts) {
     return ref
   }
 
-  const inspect = object[Symbol.for('bare.inspect')]
+  const inspect = object[Symbol.for('bare.inspect')] || object[Symbol.for('nodejs.util.inspect.custom')]
 
   if (typeof inspect === 'function') {
     const value = inspect.call(
