@@ -347,7 +347,7 @@ function inspectObject (object, depth, opts) {
   if (typeof inspect === 'function') {
     const value = inspect.call(
       object,
-      opts.depth === null ? null : opts.depth - depth,
+      typeof opts.depth === 'number' ? opts.depth - depth : null,
       {
         colors: opts.colors,
         breakLength: opts.breakLength
