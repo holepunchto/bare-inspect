@@ -264,7 +264,6 @@ class InspectSequence extends InspectNode {
 function inspectValue (value, depth, opts) {
   if (value === undefined) return inspectUndefined(depth, opts)
   if (value === null) return inspectNull(depth, opts)
-  if (value !== value) return inspectNaN(depth, opts)
 
   switch (typeof value) {
     case 'boolean': return inspectBoolean(value, depth, opts)
@@ -283,10 +282,6 @@ function inspectUndefined (depth, opts) {
 
 function inspectNull (depth, opts) {
   return new InspectLeaf('null', ansiEscapes.modifierBold, depth, opts)
-}
-
-function inspectNaN (depth, opts) {
-  return new InspectLeaf('NaN', ansiEscapes.colorYellow, depth, opts)
 }
 
 function inspectBoolean (value, depth, opts) {
