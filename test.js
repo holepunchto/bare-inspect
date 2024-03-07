@@ -3,6 +3,8 @@ const test = require('brittle')
 const inspect = require('.')
 
 test('numbers', (t) => {
+  t.is(inspect(NaN), 'NaN', 'NaN')
+
   t.is(inspect(0), '0', 'positive zero')
   t.is(inspect(-0), '-0', 'negative zero')
 
