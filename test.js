@@ -198,6 +198,16 @@ test('custom inspect method with cycle', (t) => {
   t.is(inspect(new Foo()), '<ref *1> Foo { self: [circular *1] }')
 })
 
+test('custom inspect method with string result', (t) => {
+  class Foo {
+    [Symbol.for('bare.inspect')] () {
+      return 'Foo'
+    }
+  }
+
+  t.is(inspect(new Foo()), 'Foo')
+})
+
 test('custom inspect method, Node.js compatibility', (t) => {
   t.plan(2)
 

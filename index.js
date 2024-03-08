@@ -355,9 +355,15 @@ function inspectObject (object, depth, opts) {
       exports
     )
 
-    refs.set(value, ref)
+    if (typeof value === 'object' && value !== null) {
+      refs.set(value, ref)
+    }
 
-    return inspectValue(value, depth, opts)
+    if (typeof value !== 'string') {
+      return inspectValue(value, depth, opts)
+    }
+
+    return value
   }
 
   if (object instanceof Date) return inspectDate(object, ref, depth, opts)
