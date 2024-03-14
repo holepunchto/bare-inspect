@@ -208,6 +208,30 @@ test('custom inspect method with string result', (t) => {
   t.is(inspect(new Foo()), 'Foo')
 })
 
+test('custom inspect method with stylize', (t) => {
+  class Foo {
+    [Symbol.for('bare.inspect')] (depth, opts) {
+      return opts.stylize('Foo', 'special')
+    }
+  }
+
+  t.is(inspect(new Foo()), 'Foo')
+})
+
+test('custom inspect method with custom stylize', (t) => {
+  class Foo {
+    [Symbol.for('bare.inspect')] (depth, opts) {
+      return opts.stylize('Foo', 'special')
+    }
+  }
+
+  function stylize (value, style) {
+    return value.toUpperCase()
+  }
+
+  t.is(inspect(new Foo(), { stylize }), 'FOO')
+})
+
 test('custom inspect method, Node.js compatibility', (t) => {
   t.plan(2)
 
