@@ -76,11 +76,10 @@ test('arrays', (t) => {
 
   t.is(inspect([1, 2, 3, 4]), '[ 1, 2, 3, 4 ]', 'short array')
 
-  t.is(inspect(new Array(48).fill().map((_, i) => i)), trim`
+  t.is(inspect(new Array(40).fill().map((_, i) => i)), trim`
 [
    0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
-  40, 41, 42, 43, 44, 45, 46, 47
+  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39
 ]
   `, 'long array')
 })
@@ -92,10 +91,10 @@ test('array views', (t) => {
 test('buffers', (t) => {
   t.is(inspect(Buffer.from([2, 4, 8, 16])), '<Buffer 02 04 08 10>', 'short buffer')
 
-  t.is(inspect(Buffer.alloc(48)), trim`
+  t.is(inspect(Buffer.alloc(40)), trim`
 <Buffer
   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00
 >
   `, 'long buffer')
 })
@@ -162,6 +161,84 @@ test('array with same reference twice', (t) => {
   const bar = [foo, foo]
 
   t.is(inspect(bar), '[ {}, {} ]')
+})
+
+test('truncated array', (t) => {
+  t.is(inspect(new Array(48).fill().map((_, i) => i)), trim`
+[
+   0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+  ... 8 more
+]
+  `)
+})
+
+test('truncated array with additional properties', (t) => {
+  const arr = new Array(48).fill().map((_, i) => i)
+  arr.foo = 'a'
+  arr.bar = 'b'
+
+  t.is(inspect(arr), trim`
+[
+   0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+  20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
+  ... 8 more,
+  foo: 'a',
+  bar: 'b'
+]
+  `)
+})
+
+test('truncated buffer', (t) => {
+  t.is(inspect(Buffer.alloc(48)), trim`
+<Buffer
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  ... 8 more
+>
+  `)
+})
+
+test('truncated buffer with additional properties', (t) => {
+  const buf = Buffer.alloc(48)
+  buf.foo = 'a'
+  buf.bar = 'b'
+
+  t.is(inspect(buf), trim`
+<Buffer
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  ... 8 more
+  foo: 'a'
+  bar: 'b'
+>
+  `)
+})
+
+test('truncated typed array', (t) => {
+  t.is(inspect(new Uint8Array(48)), trim`
+Uint8Array(48) [
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  ... 8 more
+]
+  `)
+})
+
+test('truncated typed array with additional properties', (t) => {
+  const arr = new Uint8Array(48)
+  arr.foo = 'a'
+  arr.bar = 'b'
+
+  t.is(inspect(arr), trim`
+Uint8Array(48) [
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  ... 8 more,
+  foo: 'a',
+  bar: 'b'
+]
+  `)
 })
 
 test('custom inspect method', (t) => {
