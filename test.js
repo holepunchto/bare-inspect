@@ -241,6 +241,11 @@ Uint8Array(48) [
   `)
 })
 
+test('deep object', (t) => {
+  t.is(inspect({ foo: { bar: { baz: 42 } } }), '{ foo: { bar: [Object] } }')
+  t.is(inspect({ foo: { bar: new Date() } }), '{ foo: { bar: [Date] } }')
+})
+
 test('custom inspect method', (t) => {
   t.plan(2)
 

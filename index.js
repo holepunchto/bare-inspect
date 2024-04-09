@@ -3,19 +3,21 @@ const binding = require('./binding')
 
 const PLAIN_KEY = /^[a-zA-Z_][a-zA-Z_0-9]*$/
 
+const defaultDepth = 2
 const defaultBreakLength = 80
 const defaultMaxArrayLength = 40
 
 module.exports = exports = function inspect (value, opts = {}) {
   const {
     colors = false,
+    depth = defaultDepth,
     breakLength = defaultBreakLength,
     stylize = defaultStylize(colors)
   } = opts
 
   const references = new InspectRefMap()
 
-  const tree = inspectValue(value, 0, { colors, breakLength, stylize, references })
+  const tree = inspectValue(value, 0, { colors, depth, breakLength, stylize, references })
 
   return tree.toString()
 }
@@ -394,6 +396,14 @@ function inspectObject (object, depth, opts) {
   } else if (ref.count) {
     ref.circular = true
     return ref
+  }
+
+  const maxDepth = typeof opts.depth === 'number' ? opts.depth : Infinity
+
+  if (maxDepth <= depth) {
+    const constructor = object.constructor
+
+    return new InspectLeaf('[' + (constructor && constructor.name ? constructor.name : 'Object') + ']', styles.special, depth, opts)
   }
 
   const inspect = object[Symbol.for('bare.inspect')] || object[Symbol.for('nodejs.util.inspect.custom')]
