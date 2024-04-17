@@ -1,5 +1,5 @@
 const ansiEscapes = require('bare-ansi-escapes')
-const type = require('bare-type')
+const getType = require('bare-type')
 const binding = require('./binding')
 
 const PLAIN_KEY = /^[a-zA-Z_][a-zA-Z_0-9]*$/
@@ -319,18 +319,18 @@ class InspectSequence extends InspectNode {
 }
 
 function inspectValue (value, depth, opts) {
-  const t = type(value)
+  const type = getType(value)
 
-  if (t.isUndefined()) return inspectUndefined(depth, opts)
-  if (t.isNull()) return inspectNull(depth, opts)
-  if (t.isBoolean()) return inspectBoolean(value, depth, opts)
-  if (t.isNumber()) return inspectNumber(value, depth, opts)
-  if (t.isBigInt()) return inspectBigInt(value, depth, opts)
-  if (t.isString()) return inspectString(value, depth, opts)
-  if (t.isSymbol()) return inspectSymbol(value, depth, opts)
-  if (t.isObject()) return inspectObject(t, value, depth, opts)
-  if (t.isFunction()) return inspectFunction(t, value, depth, opts)
-  if (t.isExternal()) return inspectExternal(value, opts, opts)
+  if (type.isUndefined()) return inspectUndefined(depth, opts)
+  if (type.isNull()) return inspectNull(depth, opts)
+  if (type.isBoolean()) return inspectBoolean(value, depth, opts)
+  if (type.isNumber()) return inspectNumber(value, depth, opts)
+  if (type.isBigInt()) return inspectBigInt(value, depth, opts)
+  if (type.isString()) return inspectString(value, depth, opts)
+  if (type.isSymbol()) return inspectSymbol(value, depth, opts)
+  if (type.isObject()) return inspectObject(type, value, depth, opts)
+  if (type.isFunction()) return inspectFunction(type, value, depth, opts)
+  if (type.isExternal()) return inspectExternal(value, opts, opts)
 }
 
 function inspectUndefined (depth, opts) {
@@ -387,7 +387,7 @@ function inspectKey (value, depth, opts) {
   }
 }
 
-function inspectObject (t, object, depth, opts) {
+function inspectObject (type, object, depth, opts) {
   const refs = opts.references
 
   let ref = refs.get(object)
@@ -432,20 +432,20 @@ function inspectObject (t, object, depth, opts) {
     return value
   }
 
-  if (t.isArray()) return inspectArray(object, ref, depth, opts)
-  if (t.isDate()) return inspectDate(object, ref, depth, opts)
-  if (t.isRegExp()) return inspectRegExp(object, ref, depth, opts)
-  if (t.isError()) return inspectError(object, ref, depth, opts)
-  if (t.isPromise()) return inspectPromise(object, ref, depth, opts)
-  if (t.isMap()) return inspectMap(object, ref, depth, opts)
-  if (t.isSet()) return inspectSet(object, ref, depth, opts)
-  if (t.isWeakMap()) return inspectWeakMap(object, ref, depth, opts)
-  if (t.isWeakSet()) return inspectWeakSet(object, ref, depth, opts)
-  if (t.isWeakRef()) return inspectWeakRef(object, ref, depth, opts)
-  if (t.isArrayBuffer()) return inspectArrayBuffer(object, ref, depth, opts)
-  if (t.isSharedArrayBuffer()) return inspectSharedArrayBuffer(object, ref, depth, opts)
-  if (t.isTypedArray()) return inspectTypedArray(object, ref, depth, opts)
-  if (t.isDataView()) return inspectDataView(object, ref, depth, opts)
+  if (type.isArray()) return inspectArray(object, ref, depth, opts)
+  if (type.isDate()) return inspectDate(object, ref, depth, opts)
+  if (type.isRegExp()) return inspectRegExp(object, ref, depth, opts)
+  if (type.isError()) return inspectError(object, ref, depth, opts)
+  if (type.isPromise()) return inspectPromise(object, ref, depth, opts)
+  if (type.isMap()) return inspectMap(object, ref, depth, opts)
+  if (type.isSet()) return inspectSet(object, ref, depth, opts)
+  if (type.isWeakMap()) return inspectWeakMap(object, ref, depth, opts)
+  if (type.isWeakSet()) return inspectWeakSet(object, ref, depth, opts)
+  if (type.isWeakRef()) return inspectWeakRef(object, ref, depth, opts)
+  if (type.isArrayBuffer()) return inspectArrayBuffer(object, ref, depth, opts)
+  if (type.isSharedArrayBuffer()) return inspectSharedArrayBuffer(object, ref, depth, opts)
+  if (type.isTypedArray()) return inspectTypedArray(object, ref, depth, opts)
+  if (type.isDataView()) return inspectDataView(object, ref, depth, opts)
 
   ref.increment()
 
@@ -775,13 +775,13 @@ function inspectDataView (dataView, ref, depth, opts) {
   return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
 
-function inspectFunction (t, fn, depth, opts) {
+function inspectFunction (type, fn, depth, opts) {
   if (fn.toString().startsWith('class')) return inspectClass(fn, depth, opts)
 
   let tag = 'function'
 
-  if (t.isGeneratorFunction()) tag = 'generator ' + tag
-  if (t.isAsyncFunction()) tag = 'async ' + tag
+  if (type.isGeneratorFunction()) tag = 'generator ' + tag
+  if (type.isAsyncFunction()) tag = 'async ' + tag
 
   return new InspectLeaf('[' + tag + ' ' + (fn.name ? fn.name : '(anonymous)') + ']', styles.special, depth, opts)
 }
