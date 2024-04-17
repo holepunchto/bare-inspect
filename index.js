@@ -1,4 +1,5 @@
 const ansiEscapes = require('bare-ansi-escapes')
+const type = require('bare-type')
 const binding = require('./binding')
 
 const PLAIN_KEY = /^[a-zA-Z_][a-zA-Z_0-9]*$/
@@ -318,16 +319,18 @@ class InspectSequence extends InspectNode {
 }
 
 function inspectValue (value, depth, opts) {
-  switch (typeof value) {
-    case 'undefined': return inspectUndefined(depth, opts)
-    case 'boolean': return inspectBoolean(value, depth, opts)
-    case 'number': return inspectNumber(value, depth, opts)
-    case 'bigint': return inspectBigInt(value, depth, opts)
-    case 'string': return inspectString(value, depth, opts)
-    case 'symbol': return inspectSymbol(value, depth, opts)
-    case 'object': return inspectObject(value, depth, opts)
-    case 'function': return inspectFunction(value, depth, opts)
-  }
+  const t = type(value)
+
+  if (t.isUndefined()) return inspectUndefined(depth, opts)
+  if (t.isNull()) return inspectNull(depth, opts)
+  if (t.isBoolean()) return inspectBoolean(value, depth, opts)
+  if (t.isNumber()) return inspectNumber(value, depth, opts)
+  if (t.isBigInt()) return inspectBigInt(value, depth, opts)
+  if (t.isString()) return inspectString(value, depth, opts)
+  if (t.isSymbol()) return inspectSymbol(value, depth, opts)
+  if (t.isObject()) return inspectObject(t, value, depth, opts)
+  if (t.isFunction()) return inspectFunction(t, value, depth, opts)
+  if (t.isExternal()) return inspectExternal(value, opts, opts)
 }
 
 function inspectUndefined (depth, opts) {
@@ -384,9 +387,7 @@ function inspectKey (value, depth, opts) {
   }
 }
 
-function inspectObject (object, depth, opts) {
-  if (object === null) return inspectNull(depth, opts)
-
+function inspectObject (t, object, depth, opts) {
   const refs = opts.references
 
   let ref = refs.get(object)
@@ -431,29 +432,20 @@ function inspectObject (object, depth, opts) {
     return value
   }
 
-  if (object instanceof Date) return inspectDate(object, ref, depth, opts)
-  if (object instanceof RegExp) return inspectRegExp(object, ref, depth, opts)
-  if (object instanceof Array) return inspectArray(object, ref, depth, opts)
-  if (object instanceof ArrayBuffer) return inspectArrayBuffer(object, ref, depth, opts)
-  if (object instanceof Buffer) return inspectBuffer(object, ref, depth, opts)
-  if (
-    object instanceof Int8Array ||
-    object instanceof Uint8Array ||
-    object instanceof Uint8ClampedArray ||
-    object instanceof Int16Array ||
-    object instanceof Uint16Array ||
-    object instanceof Int32Array ||
-    object instanceof Uint32Array ||
-    object instanceof Float32Array ||
-    object instanceof Float64Array ||
-    object instanceof BigInt64Array ||
-    object instanceof BigUint64Array
-  ) {
-    return inspectArrayView(object, ref, depth, opts)
-  }
-  if (object instanceof DataView) return inspectDataView(object, ref, depth, opts)
-  if (object instanceof Error) return inspectError(object, ref, depth, opts)
-  if (object instanceof Promise) return inspectPromise(object, ref, depth, opts)
+  if (t.isArray()) return inspectArray(object, ref, depth, opts)
+  if (t.isDate()) return inspectDate(object, ref, depth, opts)
+  if (t.isRegExp()) return inspectRegExp(object, ref, depth, opts)
+  if (t.isError()) return inspectError(object, ref, depth, opts)
+  if (t.isPromise()) return inspectPromise(object, ref, depth, opts)
+  if (t.isMap()) return inspectMap(object, ref, depth, opts)
+  if (t.isSet()) return inspectSet(object, ref, depth, opts)
+  if (t.isWeakMap()) return inspectWeakMap(object, ref, depth, opts)
+  if (t.isWeakSet()) return inspectWeakSet(object, ref, depth, opts)
+  if (t.isWeakRef()) return inspectWeakRef(object, ref, depth, opts)
+  if (t.isArrayBuffer()) return inspectArrayBuffer(object, ref, depth, opts)
+  if (t.isSharedArrayBuffer()) return inspectSharedArrayBuffer(object, ref, depth, opts)
+  if (t.isTypedArray()) return inspectTypedArray(object, ref, depth, opts)
+  if (t.isDataView()) return inspectDataView(object, ref, depth, opts)
 
   ref.increment()
 
@@ -469,6 +461,10 @@ function inspectObject (object, depth, opts) {
 
   let header = '{ '
 
+  const tag = object[Symbol.toStringTag]
+
+  if (tag) header = '[' + tag + '] ' + header
+
   if (object.constructor) {
     const name = object.constructor.name
 
@@ -478,14 +474,6 @@ function inspectObject (object, depth, opts) {
   }
 
   return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
-}
-
-function inspectDate (date, ref, depth, opts) {
-  return new InspectLeaf(date.toISOString(), styles.date, depth, opts)
-}
-
-function inspectRegExp (regExp, ref, depth, opts) {
-  return new InspectLeaf(regExp.toString(), styles.regexp, depth, opts)
 }
 
 function inspectArray (array, ref, depth, opts) {
@@ -517,7 +505,152 @@ function inspectArray (array, ref, depth, opts) {
 
   ref.decrement()
 
-  return new InspectSequence('[ ', ' ]', ', ', values, ref, depth, { ...opts, tabulate: true })
+  let header = '[ '
+
+  if (array.constructor.name !== 'Array') {
+    header = array.constructor.name + '(' + array.length + ') ' + header
+  }
+
+  return new InspectSequence(header, ' ]', ', ', values, ref, depth, { ...opts, tabulate: true })
+}
+
+function inspectDate (date, ref, depth, opts) {
+  return new InspectLeaf(date.toISOString(), styles.date, depth, opts)
+}
+
+function inspectRegExp (regExp, ref, depth, opts) {
+  return new InspectLeaf(regExp.toString(), styles.regexp, depth, opts)
+}
+
+function inspectError (error, ref, depth, opts) {
+  return new InspectLeaf(error.stack, null, depth, opts)
+}
+
+function inspectPromise (promise, ref, depth, opts) {
+  ref.increment()
+
+  const state = binding.getPromiseState(promise)
+
+  const values = []
+
+  switch (state) {
+    case 0: // Pending
+      values.push(new InspectLeaf('<pending>', styles.special, depth, opts))
+      break
+
+    case 1: // Fulfilled
+      values.push(inspectValue(binding.getPromiseResult(promise), depth, opts))
+      break
+
+    case 2: // Rejected
+      values.push(new InspectLeaf('<rejected>', styles.special, depth, opts), inspectValue(binding.getPromiseResult(promise), depth, opts))
+  }
+
+  ref.decrement()
+
+  const header = promise.constructor.name + ' { '
+
+  return new InspectSequence(header, ' }', ' ', values, ref, depth, opts)
+}
+
+function inspectMap (map, ref, depth, opts) {
+  const {
+    maxArrayLength = defaultMaxArrayLength,
+    maxMapLength = maxArrayLength
+  } = opts
+
+  ref.increment()
+
+  const values = []
+
+  let remaining = maxMapLength
+
+  for (const entry of map) {
+    if (remaining-- === 0) {
+      values.push(new InspectSuspension(map.size - values.length, depth + 1, { ...opts, breakAlways: true }))
+      break
+    }
+
+    values.push(new InspectPair(' => ', inspectValue(entry[0], depth + 1, opts), inspectValue(entry[1], depth + 1, opts), depth + 1, opts))
+  }
+
+  for (const key in map) {
+    if (key === 'constructor') continue
+
+    const value = inspectValue(map[key], depth + 1, opts)
+
+    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, { ...opts, breakAlways: remaining < 0 }))
+  }
+
+  ref.decrement()
+
+  const header = map.constructor.name + '(' + map.size + ') { '
+
+  return new InspectSequence(header, ' }', ', ', values, ref, depth, { ...opts, tabulate: true })
+}
+
+function inspectSet (set, ref, depth, opts) {
+  const {
+    maxArrayLength = defaultMaxArrayLength,
+    maxSetLength = maxArrayLength
+  } = opts
+
+  ref.increment()
+
+  const values = []
+
+  let remaining = maxSetLength
+
+  for (const entry of set) {
+    if (remaining-- === 0) {
+      values.push(new InspectSuspension(set.size - values.length, depth + 1, { ...opts, breakAlways: true }))
+      break
+    }
+
+    values.push(inspectValue(entry, depth + 1, opts))
+  }
+
+  for (const key in set) {
+    if (key === 'constructor') continue
+
+    const value = inspectValue(set[key], depth + 1, opts)
+
+    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, { ...opts, breakAlways: remaining < 0 }))
+  }
+
+  ref.decrement()
+
+  const header = set.constructor.name + '(' + set.size + ') { '
+
+  return new InspectSequence(header, ' }', ', ', values, ref, depth, { ...opts, tabulate: true })
+}
+
+function inspectWeakMap (weakMap, ref, depth, opts) {
+  const header = weakMap.constructor.name + ' { '
+
+  return new InspectSequence(header, ' }', ' ', [new InspectLeaf('<items unknown>', styles.special, depth + 1, opts)], ref, depth, opts)
+}
+
+function inspectWeakSet (weakSet, ref, depth, opts) {
+  const header = weakSet.constructor.name + ' { '
+
+  return new InspectSequence(header, ' }', ' ', [new InspectLeaf('<items unknown>', styles.special, depth + 1, opts)], ref, depth, opts)
+}
+
+function inspectWeakRef (weakRef, ref, depth, opts) {
+  const target = weakRef.deref()
+
+  let value
+
+  if (target === undefined) {
+    value = new InspectLeaf('<cleared>', styles.special, depth + 1, opts)
+  } else {
+    value = inspectValue(target, depth + 1, opts)
+  }
+
+  const header = weakRef.constructor.name + ' { '
+
+  return new InspectSequence(header, ' }', ' ', [value], ref, depth, opts)
 }
 
 function inspectArrayBuffer (arrayBuffer, ref, depth, opts) {
@@ -531,7 +664,62 @@ function inspectArrayBuffer (arrayBuffer, ref, depth, opts) {
 
   ref.decrement()
 
-  return new InspectSequence('ArrayBuffer { ', ' }', ', ', values, ref, depth, opts)
+  const header = arrayBuffer.constructor.name + ' { '
+
+  return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
+}
+
+function inspectSharedArrayBuffer (sharedArrayBuffer, ref, depth, opts) {
+  ref.increment()
+
+  const values = []
+
+  for (const key of ['byteLength']) {
+    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(sharedArrayBuffer[key], depth + 1, opts), depth + 1, opts))
+  }
+
+  ref.decrement()
+
+  const header = sharedArrayBuffer.constructor.name + ' { '
+
+  return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
+}
+
+function inspectTypedArray (typedArray, ref, depth, opts) {
+  if (Buffer.isBuffer(typedArray)) return inspectBuffer(typedArray, ref, depth, opts)
+
+  const {
+    maxArrayLength = defaultMaxArrayLength,
+    maxTypedArrayLength = maxArrayLength
+  } = opts
+
+  ref.increment()
+
+  const values = []
+
+  let remaining = maxTypedArrayLength
+
+  for (const key in typedArray) {
+    if (key === 'constructor') continue
+
+    const value = inspectValue(typedArray[key], depth + 1, opts)
+
+    if (Number.isInteger(+key)) {
+      if (remaining-- === 0) {
+        values.push(new InspectSuspension(typedArray.length - values.length, depth + 1, { ...opts, breakAlways: true }))
+      } else if (remaining >= 0) {
+        values.push(value)
+      }
+    } else {
+      values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, { ...opts, breakAlways: remaining < 0 }))
+    }
+  }
+
+  ref.decrement()
+
+  const header = typedArray.constructor.name + '(' + typedArray.length + ') [ '
+
+  return new InspectSequence(header, ' ]', ', ', values, ref, depth, { ...opts, tabulate: true })
 }
 
 function inspectBuffer (buffer, ref, depth, opts) {
@@ -565,41 +753,6 @@ function inspectBuffer (buffer, ref, depth, opts) {
   return new InspectSequence('<Buffer ', '>', ' ', values, ref, depth, { ...opts, tabulate: true })
 }
 
-function inspectArrayView (arrayView, ref, depth, opts) {
-  const {
-    maxArrayLength = defaultMaxArrayLength,
-    maxTypedArrayLength = maxArrayLength
-  } = opts
-
-  ref.increment()
-
-  const values = []
-
-  let remaining = maxTypedArrayLength
-
-  for (const key in arrayView) {
-    if (key === 'constructor') continue
-
-    const value = inspectValue(arrayView[key], depth + 1, opts)
-
-    if (Number.isInteger(+key)) {
-      if (remaining-- === 0) {
-        values.push(new InspectSuspension(arrayView.length - values.length, depth + 1, { ...opts, breakAlways: true }))
-      } else if (remaining >= 0) {
-        values.push(value)
-      }
-    } else {
-      values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, { ...opts, breakAlways: remaining < 0 }))
-    }
-  }
-
-  ref.decrement()
-
-  const header = arrayView.constructor.name + '(' + arrayView.length + ') [ '
-
-  return new InspectSequence(header, ' ]', ', ', values, ref, depth, { ...opts, tabulate: true })
-}
-
 function inspectDataView (dataView, ref, depth, opts) {
   ref.increment()
 
@@ -617,44 +770,26 @@ function inspectDataView (dataView, ref, depth, opts) {
 
   ref.decrement()
 
-  return new InspectSequence('DataView { ', ' }', ', ', values, ref, depth, opts)
+  const header = dataView.constructor.name + ' { '
+
+  return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
 
-function inspectError (error, ref, depth, opts) {
-  return new InspectLeaf(error.stack, null, depth, opts)
-}
-
-function inspectPromise (promise, ref, depth, opts) {
-  ref.increment()
-
-  const state = binding.getPromiseState(promise)
-
-  const values = []
-
-  switch (state) {
-    case 0: // Pending
-      values.push(new InspectLeaf('<pending>', styles.special, depth, opts))
-      break
-
-    case 1: // Fulfilled
-      values.push(inspectValue(binding.getPromiseResult(promise), depth, opts))
-      break
-
-    case 2: // Rejected
-      values.push(new InspectLeaf('<rejected>', styles.special, depth, opts), inspectValue(binding.getPromiseResult(promise), depth, opts))
-  }
-
-  ref.decrement()
-
-  return new InspectSequence('Promise { ', ' }', ' ', values, ref, depth, opts)
-}
-
-function inspectFunction (fn, depth, opts) {
+function inspectFunction (t, fn, depth, opts) {
   if (fn.toString().startsWith('class')) return inspectClass(fn, depth, opts)
 
-  return new InspectLeaf('[function ' + (fn.name ? fn.name : '(anonymous)') + ']', styles.special, depth, opts)
+  let tag = 'function'
+
+  if (t.isGeneratorFunction()) tag = 'generator ' + tag
+  if (t.isAsyncFunction()) tag = 'async ' + tag
+
+  return new InspectLeaf('[' + tag + ' ' + (fn.name ? fn.name : '(anonymous)') + ']', styles.special, depth, opts)
 }
 
 function inspectClass (ctor, depth, opts) {
   return new InspectLeaf('[class ' + (ctor.name ? ctor.name : '(anonymous)') + ']', styles.special, depth, opts)
+}
+
+function inspectExternal (external, depth, opts) {
+  return new InspectLeaf('[external 0x' + binding.getExternal(external).toString(16) + ']', styles.special, depth, opts)
 }

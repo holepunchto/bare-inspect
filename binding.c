@@ -45,7 +45,30 @@ bare_inspect_get_promise_result (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-init (js_env_t *env, js_value_t *exports) {
+bare_inspect_get_external (js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  void *data;
+  err = js_get_value_external(env, argv[0], &data);
+  assert(err == 0);
+
+  js_value_t *result;
+  err = js_create_bigint_uint64(env, (uintptr_t) data, &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
+bare_inspect_exports (js_env_t *env, js_value_t *exports) {
   int err;
 
 #define V(name, fn) \
@@ -59,9 +82,10 @@ init (js_env_t *env, js_value_t *exports) {
 
   V("getPromiseState", bare_inspect_get_promise_state)
   V("getPromiseResult", bare_inspect_get_promise_result)
+  V("getExternal", bare_inspect_get_external)
 #undef V
 
   return exports;
 }
 
-BARE_MODULE(bare_inspect, init)
+BARE_MODULE(bare_inspect, bare_inspect_exports)

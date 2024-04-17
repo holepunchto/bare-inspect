@@ -2,6 +2,10 @@
 const test = require('brittle')
 const inspect = require('.')
 
+test('undefined', (t) => {
+  t.is(inspect(undefined), 'undefined', 'undefined')
+})
+
 test('numbers', (t) => {
   t.is(inspect(NaN), 'NaN', 'NaN')
 
@@ -30,47 +34,6 @@ test('strings', (t) => {
   t.is(inspect('f\noo'), '\'f\\noo\'', 'with newline')
 })
 
-test('functions', (t) => {
-  let foo
-  t.is(inspect(function foo () {}), '[function foo]', 'named function')
-  t.is(inspect(function () {}), '[function (anonymous)]', 'anonymous function')
-  t.is(inspect(foo = () => {}, foo), '[function foo]', 'named arrow function')
-  t.is(inspect(() => {}), '[function (anonymous)]', 'anonymous arrow function')
-})
-
-test('classes', (t) => {
-  t.is(inspect(class Foo {}), '[class Foo]', 'named class')
-  t.is(inspect(class {}), '[class (anonymous)]', 'anonymous class')
-})
-
-test('class instances', (t) => {
-  class Foo {
-    constructor () {
-      this.hello = 'world'
-    }
-  }
-
-  t.is(inspect(new Foo()), 'Foo { hello: \'world\' }', 'named class')
-
-  class Bar {}
-
-  t.is(inspect(new Bar()), 'Bar {}', 'empty class')
-})
-
-test('dates', (t) => {
-  t.is(inspect(new Date('2000-01-02')), '2000-01-02T00:00:00.000Z')
-})
-
-test('regular expressions', (t) => {
-  t.is(inspect(/regExp/gi), '/regExp/gi')
-})
-
-test('objects', (t) => {
-  t.is(inspect({}), '{}', 'empty object')
-
-  t.is(inspect({ hello: 'world' }), '{ hello: \'world\' }')
-})
-
 test('arrays', (t) => {
   t.is(inspect([]), '[]', 'empty array')
 
@@ -82,6 +45,36 @@ test('arrays', (t) => {
   20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39
 ]
   `, 'long array')
+})
+
+test('dates', (t) => {
+  t.is(inspect(new Date('2000-01-02')), '2000-01-02T00:00:00.000Z')
+})
+
+test('regular expressions', (t) => {
+  t.is(inspect(/regExp/gi), '/regExp/gi')
+})
+
+test('promises', (t) => {
+  t.plan(4)
+
+  t.is(inspect(Promise.resolve(42)), 'Promise { 42 }', 'resolved')
+  t.is(inspect(Promise.reject(42)), 'Promise { <rejected> 42 }', 'rejected') // eslint-disable-line prefer-promise-reject-errors
+  t.is(inspect(new Promise((resolve) => queueMicrotask(resolve))), 'Promise { <pending> }', 'pending')
+
+  Bare.once('unhandledRejection', () => t.pass('caught'))
+})
+
+test('maps', (t) => {
+  t.is(inspect(new Map()), 'Map(0) {}', 'empty map')
+
+  t.is(inspect(new Map([['foo', 1], [42, true]])), 'Map(2) { \'foo\' => 1, 42 => true }', 'short map')
+})
+
+test('set', (t) => {
+  t.is(inspect(new Set()), 'Set(0) {}', 'empty set')
+
+  t.is(inspect(new Set(['foo', 42, true])), 'Set(3) { \'foo\', 42, true }', 'short set')
 })
 
 test('array views', (t) => {
@@ -113,8 +106,49 @@ test('typed arrays', (t) => {
   t.is(inspect(BigUint64Array.from([2n, 4n, 8n, 16n])), 'BigUint64Array(4) [ 2n, 4n, 8n, 16n ]')
 })
 
-test('data view', (t) => {
+test('data views', (t) => {
   t.is(inspect(new DataView(new ArrayBuffer(4))), 'DataView { byteLength: 4, byteOffset: 0, buffer: ArrayBuffer { byteLength: 4 } }')
+})
+
+test('objects', (t) => {
+  t.is(inspect({}), '{}', 'empty object')
+
+  t.is(inspect({ hello: 'world' }), '{ hello: \'world\' }')
+})
+
+test('functions', (t) => {
+  let foo
+  t.is(inspect(function foo () {}), '[function foo]', 'named function')
+  t.is(inspect(function () {}), '[function (anonymous)]', 'anonymous function')
+  t.is(inspect(foo = () => {}, foo), '[function foo]', 'named arrow function')
+  t.is(inspect(() => {}), '[function (anonymous)]', 'anonymous arrow function')
+  t.is(inspect(function * foo () {}), '[generator function foo]', 'named generator function')
+  t.is(inspect(function * () {}), '[generator function (anonymous)]', 'anonymous generator function')
+  t.is(inspect(async function foo () {}), '[async function foo]', 'named async function')
+  t.is(inspect(async function () {}), '[async function (anonymous)]', 'anonymous async function')
+  t.is(inspect(foo = async () => {}, foo), '[async function foo]', 'named async arrow function')
+  t.is(inspect(async () => {}), '[async function (anonymous)]', 'anonymous async arrow function')
+  t.is(inspect(async function * foo () {}), '[async generator function foo]', 'named async generator function')
+  t.is(inspect(async function * () {}), '[async generator function (anonymous)]', 'anonymous async generator function')
+})
+
+test('classes', (t) => {
+  t.is(inspect(class Foo {}), '[class Foo]', 'named class')
+  t.is(inspect(class {}), '[class (anonymous)]', 'anonymous class')
+})
+
+test('class instances', (t) => {
+  class Foo {
+    constructor () {
+      this.hello = 'world'
+    }
+  }
+
+  t.is(inspect(new Foo()), 'Foo { hello: \'world\' }', 'named class')
+
+  class Bar {}
+
+  t.is(inspect(new Bar()), 'Bar {}', 'empty class')
 })
 
 test('recursive object reference', (t) => {
@@ -333,20 +367,6 @@ test('custom inspect method, Node.js compatibility', (t) => {
   }
 
   t.is(inspect(new Foo()), 'Foo { bar: false }')
-})
-
-test('promise', (t) => {
-  t.plan(4)
-
-  t.is(inspect(Promise.resolve(42)), 'Promise { 42 }', 'resolved')
-  t.is(inspect(Promise.reject(42)), 'Promise { <rejected> 42 }', 'rejected') // eslint-disable-line prefer-promise-reject-errors
-  t.is(inspect(new Promise((resolve) => queueMicrotask(resolve))), 'Promise { <pending> }', 'pending')
-
-  Bare.once('unhandledRejection', () => t.pass('caught'))
-})
-
-test('undefined', (t) => {
-  t.is(inspect(undefined), 'undefined', 'undefined')
 })
 
 function trim (strings, ...substitutions) {

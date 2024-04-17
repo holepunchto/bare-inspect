@@ -25,7 +25,8 @@
   },
   "homepage": "https://github.com/holepunchto/bare-inspect#readme",
   "dependencies": {
-    "bare-ansi-escapes": "^2.1.0"
+    "bare-ansi-escapes": "^2.1.0",
+    "bare-type": "^1.0.0"
   },
   "devDependencies": {
     "brittle": "^3.3.2",
