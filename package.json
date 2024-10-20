@@ -1,6 +1,6 @@
 {
   "name": "bare-inspect",
-  "version": "3.0.4",
+  "version": "3.0.5",
   "description": "Inspect objects as strings for debugging",
   "main": "index.js",
   "files": [
