@@ -8,7 +8,7 @@ const defaultDepth = 2
 const defaultBreakLength = 80
 const defaultMaxArrayLength = 40
 
-module.exports = exports = function inspect (value, opts = {}) {
+module.exports = exports = function inspect(value, opts = {}) {
   const {
     colors = false,
     depth = defaultDepth,
@@ -18,12 +18,18 @@ module.exports = exports = function inspect (value, opts = {}) {
 
   const references = new InspectRefMap()
 
-  const tree = inspectValue(value, 0, { colors, depth, breakLength, stylize, references })
+  const tree = inspectValue(value, 0, {
+    colors,
+    depth,
+    breakLength,
+    stylize,
+    references
+  })
 
   return tree.toString()
 }
 
-const styles = exports.styles = {
+const styles = (exports.styles = {
   bigint: ansiEscapes.colorYellow,
   boolean: ansiEscapes.colorYellow,
   date: ansiEscapes.colorMagenta,
@@ -36,10 +42,10 @@ const styles = exports.styles = {
   string: ansiEscapes.colorGreen,
   symbol: ansiEscapes.colorGreen,
   undefined: ansiEscapes.colorBrightBlack
-}
+})
 
-function defaultStylize (colors) {
-  return function stylize (value, style) {
+function defaultStylize(colors) {
+  return function stylize(value, style) {
     const color = colors && styles[style]
 
     if (color) return color + value + ansiEscapes.modifierReset
@@ -49,25 +55,25 @@ function defaultStylize (colors) {
 }
 
 class InspectRefMap {
-  constructor () {
+  constructor() {
     this.refs = new WeakMap()
     this.ids = new WeakMap()
     this.nextId = 1
   }
 
-  has (object) {
+  has(object) {
     return this.refs.has(object)
   }
 
-  get (object) {
+  get(object) {
     return this.refs.get(object) || null
   }
 
-  set (object, ref) {
+  set(object, ref) {
     this.refs.set(object, ref)
   }
 
-  id (object) {
+  id(object) {
     let id = this.ids.get(object)
     if (id) return id
 
@@ -79,11 +85,8 @@ class InspectRefMap {
 }
 
 class InspectNode {
-  constructor (depth, length, opts) {
-    const {
-      breakLength = defaultBreakLength,
-      breakAlways = false
-    } = opts
+  constructor(depth, length, opts) {
+    const { breakLength = defaultBreakLength, breakAlways = false } = opts
 
     this.depth = depth
     this.length = length
@@ -91,17 +94,17 @@ class InspectNode {
     this.breakAlways = breakAlways
   }
 
-  pad (n, string) {
+  pad(n, string) {
     return string.padStart(n, ' ')
   }
 
-  indent (n, string) {
+  indent(n, string) {
     return '  '.repeat(n) + string
   }
 }
 
 class InspectRef extends InspectNode {
-  constructor (depth, opts) {
+  constructor(depth, opts) {
     super(depth, '[circular *]'.length, opts)
 
     this.refs = opts.references
@@ -110,24 +113,20 @@ class InspectRef extends InspectNode {
     this.color = opts.colors && styles.special
   }
 
-  get id () {
+  get id() {
     return this.refs.id(this)
   }
 
-  increment () {
+  increment() {
     return ++this.count
   }
 
-  decrement () {
+  decrement() {
     return --this.count
   }
 
-  toString (opts = {}) {
-    const {
-      offset = 0,
-      pad = 0,
-      indent = 0
-    } = opts
+  toString(opts = {}) {
+    const { offset = 0, pad = 0, indent = 0 } = opts
 
     let value = this.pad(pad, '[circular *' + this.id + ']')
 
@@ -138,7 +137,7 @@ class InspectRef extends InspectNode {
 }
 
 class InspectLeaf extends InspectNode {
-  constructor (value, color, depth, opts) {
+  constructor(value, color, depth, opts) {
     const length = value.length
 
     super(depth, length, opts)
@@ -147,12 +146,8 @@ class InspectLeaf extends InspectNode {
     this.color = opts.colors && color
   }
 
-  toString (opts = {}) {
-    const {
-      offset = 0,
-      pad = 0,
-      indent = 0
-    } = opts
+  toString(opts = {}) {
+    const { offset = 0, pad = 0, indent = 0 } = opts
 
     let value = this.pad(pad, this.value)
 
@@ -163,12 +158,8 @@ class InspectLeaf extends InspectNode {
 }
 
 class InspectPair extends InspectNode {
-  constructor (delim, left, right, depth, opts) {
-    const length = (
-      left.length +
-      delim.length +
-      right.length
-    )
+  constructor(delim, left, right, depth, opts) {
+    const length = left.length + delim.length + right.length
 
     super(depth, length, opts)
 
@@ -177,17 +168,23 @@ class InspectPair extends InspectNode {
     this.right = right
   }
 
-  toString (opts = {}) {
-    const {
-      indent = 0
-    } = opts
+  toString(opts = {}) {
+    const { indent = 0 } = opts
 
-    return this.indent(indent, this.left + this.delim + this.right.toString({ indent, offset: this.left.length + this.delim.length }))
+    return this.indent(
+      indent,
+      this.left +
+        this.delim +
+        this.right.toString({
+          indent,
+          offset: this.left.length + this.delim.length
+        })
+    )
   }
 }
 
 class InspectSuspension extends InspectNode {
-  constructor (overflow, depth, opts) {
+  constructor(overflow, depth, opts) {
     const label = `... ${overflow} more`
 
     super(depth, label.length, opts)
@@ -196,27 +193,26 @@ class InspectSuspension extends InspectNode {
     this.label = label
   }
 
-  toString (opts = {}) {
-    const {
-      indent = 0
-    } = opts
+  toString(opts = {}) {
+    const { indent = 0 } = opts
 
     return this.indent(indent, this.label)
   }
 }
 
 class InspectSequence extends InspectNode {
-  constructor (header, footer, delim, values, ref, depth, opts) {
-    const {
-      tabulate = false
-    } = opts
+  constructor(header, footer, delim, values, ref, depth, opts) {
+    const { tabulate = false } = opts
 
-    const length = (
+    const length =
       (ref.circular ? '<ref *>'.length + 1 : 0) +
       header.length +
-      values.reduce((length, value, i) => length + value.length + (i === 0 ? 0 : delim.length), 0) +
+      values.reduce(
+        (length, value, i) =>
+          length + value.length + (i === 0 ? 0 : delim.length),
+        0
+      ) +
       footer.length
-    )
 
     super(depth, length, opts)
 
@@ -228,16 +224,13 @@ class InspectSequence extends InspectNode {
     this.tabulate = tabulate
   }
 
-  toString (opts = {}) {
-    const {
-      offset = 0,
-      indent = 0
-    } = opts
+  toString(opts = {}) {
+    const { offset = 0, indent = 0 } = opts
 
-    const split = this.values.length && (
-      offset + this.length > this.breakLength ||
-      indent * 2 + this.length > this.breakLength
-    )
+    const split =
+      this.values.length &&
+      (offset + this.length > this.breakLength ||
+        indent * 2 + this.length > this.breakLength)
 
     let header = this.header
 
@@ -263,10 +256,19 @@ class InspectSequence extends InspectNode {
     let pad = 0
 
     if (this.tabulate) {
-      const widest = this.values.reduce((length, value) => value.breakAlways ? length : Math.max(length, value.length), 0)
+      const widest = this.values.reduce(
+        (length, value) =>
+          value.breakAlways ? length : Math.max(length, value.length),
+        0
+      )
 
       if (widest) {
-        columns = Math.max(columns, Math.floor((this.breakLength - indent * 2) / (widest + this.delim.length)))
+        columns = Math.max(
+          columns,
+          Math.floor(
+            (this.breakLength - indent * 2) / (widest + this.delim.length)
+          )
+        )
 
         if (columns > 1) pad = widest
       }
@@ -318,7 +320,7 @@ class InspectSequence extends InspectNode {
   }
 }
 
-function inspectValue (value, depth, opts) {
+function inspectValue(value, depth, opts) {
   const type = getType(value)
 
   if (type.isUndefined()) return inspectUndefined(depth, opts)
@@ -333,19 +335,19 @@ function inspectValue (value, depth, opts) {
   if (type.isExternal()) return inspectExternal(value, opts, opts)
 }
 
-function inspectUndefined (depth, opts) {
+function inspectUndefined(depth, opts) {
   return new InspectLeaf('undefined', styles.undefined, depth, opts)
 }
 
-function inspectNull (depth, opts) {
+function inspectNull(depth, opts) {
   return new InspectLeaf('null', styles.null, depth, opts)
 }
 
-function inspectBoolean (value, depth, opts) {
+function inspectBoolean(value, depth, opts) {
   return new InspectLeaf(value.toString(), styles.boolean, depth, opts)
 }
 
-function inspectNumber (value, depth, opts) {
+function inspectNumber(value, depth, opts) {
   let string
 
   if (Object.is(value, -0)) {
@@ -357,13 +359,13 @@ function inspectNumber (value, depth, opts) {
   return new InspectLeaf(string, styles.number, depth, opts)
 }
 
-function inspectBigInt (value, depth, opts) {
+function inspectBigInt(value, depth, opts) {
   return new InspectLeaf(value.toString(10) + 'n', styles.bigint, depth, opts)
 }
 
-function inspectString (value, depth, opts) {
+function inspectString(value, depth, opts) {
   const string = value
-    .replace(/'/g, '\\\'')
+    .replace(/'/g, "\\'")
 
     // Escape control characters
     .replace(/[\b]/g, '\\b')
@@ -372,14 +374,14 @@ function inspectString (value, depth, opts) {
     .replace(/[\r]/g, '\\r')
     .replace(/[\t]/g, '\\t')
 
-  return new InspectLeaf('\'' + string + '\'', styles.string, depth, opts)
+  return new InspectLeaf("'" + string + "'", styles.string, depth, opts)
 }
 
-function inspectSymbol (value, depth, opts) {
+function inspectSymbol(value, depth, opts) {
   return new InspectLeaf(value.toString(), styles.symbol, depth, opts)
 }
 
-function inspectKey (value, depth, opts) {
+function inspectKey(value, depth, opts) {
   if (PLAIN_KEY.test(value)) {
     return new InspectLeaf(value, null, depth, opts)
   } else {
@@ -387,7 +389,7 @@ function inspectKey (value, depth, opts) {
   }
 }
 
-function inspectObject (type, object, depth, opts) {
+function inspectObject(type, object, depth, opts) {
   const refs = opts.references
 
   let ref = refs.get(object)
@@ -404,10 +406,19 @@ function inspectObject (type, object, depth, opts) {
   if (maxDepth <= depth) {
     const constructor = object.constructor
 
-    return new InspectLeaf('[' + (constructor && constructor.name ? constructor.name : 'Object') + ']', styles.special, depth, opts)
+    return new InspectLeaf(
+      '[' +
+        (constructor && constructor.name ? constructor.name : 'Object') +
+        ']',
+      styles.special,
+      depth,
+      opts
+    )
   }
 
-  const inspect = object[Symbol.for('bare.inspect')] || object[Symbol.for('nodejs.util.inspect.custom')]
+  const inspect =
+    object[Symbol.for('bare.inspect')] ||
+    object[Symbol.for('nodejs.util.inspect.custom')]
 
   if (typeof inspect === 'function') {
     const value = inspect.call(
@@ -443,7 +454,8 @@ function inspectObject (type, object, depth, opts) {
   if (type.isWeakSet()) return inspectWeakSet(object, ref, depth, opts)
   if (type.isWeakRef()) return inspectWeakRef(object, ref, depth, opts)
   if (type.isArrayBuffer()) return inspectArrayBuffer(object, ref, depth, opts)
-  if (type.isSharedArrayBuffer()) return inspectSharedArrayBuffer(object, ref, depth, opts)
+  if (type.isSharedArrayBuffer())
+    return inspectSharedArrayBuffer(object, ref, depth, opts)
   if (type.isTypedArray()) return inspectTypedArray(object, ref, depth, opts)
   if (type.isDataView()) return inspectDataView(object, ref, depth, opts)
 
@@ -454,7 +466,15 @@ function inspectObject (type, object, depth, opts) {
   for (const key in object) {
     if (key === 'constructor') continue
 
-    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(object[key], depth + 1, opts), depth + 1, opts))
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        inspectValue(object[key], depth + 1, opts),
+        depth + 1,
+        opts
+      )
+    )
   }
 
   ref.decrement()
@@ -476,10 +496,8 @@ function inspectObject (type, object, depth, opts) {
   return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
 
-function inspectArray (array, ref, depth, opts) {
-  const {
-    maxArrayLength = defaultMaxArrayLength
-  } = opts
+function inspectArray(array, ref, depth, opts) {
+  const { maxArrayLength = defaultMaxArrayLength } = opts
 
   ref.increment()
 
@@ -494,12 +512,25 @@ function inspectArray (array, ref, depth, opts) {
 
     if (Number.isInteger(+key)) {
       if (remaining-- === 0) {
-        values.push(new InspectSuspension(array.length - values.length, depth + 1, { ...opts, breakAlways: true }))
+        values.push(
+          new InspectSuspension(array.length - values.length, depth + 1, {
+            ...opts,
+            breakAlways: true
+          })
+        )
       } else if (remaining >= 0) {
         values.push(value)
       }
     } else {
-      values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, { ...opts, breakAlways: remaining < 0 }))
+      values.push(
+        new InspectPair(
+          ': ',
+          inspectKey(key, depth + 1, opts),
+          value,
+          depth + 1,
+          { ...opts, breakAlways: remaining < 0 }
+        )
+      )
     }
   }
 
@@ -511,22 +542,25 @@ function inspectArray (array, ref, depth, opts) {
     header = array.constructor.name + '(' + array.length + ') ' + header
   }
 
-  return new InspectSequence(header, ' ]', ', ', values, ref, depth, { ...opts, tabulate: true })
+  return new InspectSequence(header, ' ]', ', ', values, ref, depth, {
+    ...opts,
+    tabulate: true
+  })
 }
 
-function inspectDate (date, ref, depth, opts) {
+function inspectDate(date, ref, depth, opts) {
   return new InspectLeaf(date.toISOString(), styles.date, depth, opts)
 }
 
-function inspectRegExp (regExp, ref, depth, opts) {
+function inspectRegExp(regExp, ref, depth, opts) {
   return new InspectLeaf(regExp.toString(), styles.regexp, depth, opts)
 }
 
-function inspectError (error, ref, depth, opts) {
+function inspectError(error, ref, depth, opts) {
   return new InspectLeaf(error.stack, null, depth, opts)
 }
 
-function inspectPromise (promise, ref, depth, opts) {
+function inspectPromise(promise, ref, depth, opts) {
   ref.increment()
 
   const state = binding.getPromiseState(promise)
@@ -543,7 +577,10 @@ function inspectPromise (promise, ref, depth, opts) {
       break
 
     case 2: // Rejected
-      values.push(new InspectLeaf('<rejected>', styles.special, depth, opts), inspectValue(binding.getPromiseResult(promise), depth, opts))
+      values.push(
+        new InspectLeaf('<rejected>', styles.special, depth, opts),
+        inspectValue(binding.getPromiseResult(promise), depth, opts)
+      )
   }
 
   ref.decrement()
@@ -553,7 +590,7 @@ function inspectPromise (promise, ref, depth, opts) {
   return new InspectSequence(header, ' }', ' ', values, ref, depth, opts)
 }
 
-function inspectMap (map, ref, depth, opts) {
+function inspectMap(map, ref, depth, opts) {
   const {
     maxArrayLength = defaultMaxArrayLength,
     maxMapLength = maxArrayLength
@@ -567,11 +604,24 @@ function inspectMap (map, ref, depth, opts) {
 
   for (const entry of map) {
     if (remaining-- === 0) {
-      values.push(new InspectSuspension(map.size - values.length, depth + 1, { ...opts, breakAlways: true }))
+      values.push(
+        new InspectSuspension(map.size - values.length, depth + 1, {
+          ...opts,
+          breakAlways: true
+        })
+      )
       break
     }
 
-    values.push(new InspectPair(' => ', inspectValue(entry[0], depth + 1, opts), inspectValue(entry[1], depth + 1, opts), depth + 1, opts))
+    values.push(
+      new InspectPair(
+        ' => ',
+        inspectValue(entry[0], depth + 1, opts),
+        inspectValue(entry[1], depth + 1, opts),
+        depth + 1,
+        opts
+      )
+    )
   }
 
   for (const key in map) {
@@ -579,17 +629,28 @@ function inspectMap (map, ref, depth, opts) {
 
     const value = inspectValue(map[key], depth + 1, opts)
 
-    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, { ...opts, breakAlways: remaining < 0 }))
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        value,
+        depth + 1,
+        { ...opts, breakAlways: remaining < 0 }
+      )
+    )
   }
 
   ref.decrement()
 
   const header = map.constructor.name + '(' + map.size + ') { '
 
-  return new InspectSequence(header, ' }', ', ', values, ref, depth, { ...opts, tabulate: true })
+  return new InspectSequence(header, ' }', ', ', values, ref, depth, {
+    ...opts,
+    tabulate: true
+  })
 }
 
-function inspectSet (set, ref, depth, opts) {
+function inspectSet(set, ref, depth, opts) {
   const {
     maxArrayLength = defaultMaxArrayLength,
     maxSetLength = maxArrayLength
@@ -603,7 +664,12 @@ function inspectSet (set, ref, depth, opts) {
 
   for (const entry of set) {
     if (remaining-- === 0) {
-      values.push(new InspectSuspension(set.size - values.length, depth + 1, { ...opts, breakAlways: true }))
+      values.push(
+        new InspectSuspension(set.size - values.length, depth + 1, {
+          ...opts,
+          breakAlways: true
+        })
+      )
       break
     }
 
@@ -615,29 +681,56 @@ function inspectSet (set, ref, depth, opts) {
 
     const value = inspectValue(set[key], depth + 1, opts)
 
-    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, { ...opts, breakAlways: remaining < 0 }))
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        value,
+        depth + 1,
+        { ...opts, breakAlways: remaining < 0 }
+      )
+    )
   }
 
   ref.decrement()
 
   const header = set.constructor.name + '(' + set.size + ') { '
 
-  return new InspectSequence(header, ' }', ', ', values, ref, depth, { ...opts, tabulate: true })
+  return new InspectSequence(header, ' }', ', ', values, ref, depth, {
+    ...opts,
+    tabulate: true
+  })
 }
 
-function inspectWeakMap (weakMap, ref, depth, opts) {
+function inspectWeakMap(weakMap, ref, depth, opts) {
   const header = weakMap.constructor.name + ' { '
 
-  return new InspectSequence(header, ' }', ' ', [new InspectLeaf('<items unknown>', styles.special, depth + 1, opts)], ref, depth, opts)
+  return new InspectSequence(
+    header,
+    ' }',
+    ' ',
+    [new InspectLeaf('<items unknown>', styles.special, depth + 1, opts)],
+    ref,
+    depth,
+    opts
+  )
 }
 
-function inspectWeakSet (weakSet, ref, depth, opts) {
+function inspectWeakSet(weakSet, ref, depth, opts) {
   const header = weakSet.constructor.name + ' { '
 
-  return new InspectSequence(header, ' }', ' ', [new InspectLeaf('<items unknown>', styles.special, depth + 1, opts)], ref, depth, opts)
+  return new InspectSequence(
+    header,
+    ' }',
+    ' ',
+    [new InspectLeaf('<items unknown>', styles.special, depth + 1, opts)],
+    ref,
+    depth,
+    opts
+  )
 }
 
-function inspectWeakRef (weakRef, ref, depth, opts) {
+function inspectWeakRef(weakRef, ref, depth, opts) {
   const target = weakRef.deref()
 
   let value
@@ -653,13 +746,21 @@ function inspectWeakRef (weakRef, ref, depth, opts) {
   return new InspectSequence(header, ' }', ' ', [value], ref, depth, opts)
 }
 
-function inspectArrayBuffer (arrayBuffer, ref, depth, opts) {
+function inspectArrayBuffer(arrayBuffer, ref, depth, opts) {
   ref.increment()
 
   const values = []
 
   for (const key of ['byteLength']) {
-    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(arrayBuffer[key], depth + 1, opts), depth + 1, opts))
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        inspectValue(arrayBuffer[key], depth + 1, opts),
+        depth + 1,
+        opts
+      )
+    )
   }
 
   ref.decrement()
@@ -669,13 +770,21 @@ function inspectArrayBuffer (arrayBuffer, ref, depth, opts) {
   return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
 
-function inspectSharedArrayBuffer (sharedArrayBuffer, ref, depth, opts) {
+function inspectSharedArrayBuffer(sharedArrayBuffer, ref, depth, opts) {
   ref.increment()
 
   const values = []
 
   for (const key of ['byteLength']) {
-    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(sharedArrayBuffer[key], depth + 1, opts), depth + 1, opts))
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        inspectValue(sharedArrayBuffer[key], depth + 1, opts),
+        depth + 1,
+        opts
+      )
+    )
   }
 
   ref.decrement()
@@ -685,8 +794,9 @@ function inspectSharedArrayBuffer (sharedArrayBuffer, ref, depth, opts) {
   return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
 
-function inspectTypedArray (typedArray, ref, depth, opts) {
-  if (Buffer.isBuffer(typedArray)) return inspectBuffer(typedArray, ref, depth, opts)
+function inspectTypedArray(typedArray, ref, depth, opts) {
+  if (Buffer.isBuffer(typedArray))
+    return inspectBuffer(typedArray, ref, depth, opts)
 
   const {
     maxArrayLength = defaultMaxArrayLength,
@@ -706,12 +816,25 @@ function inspectTypedArray (typedArray, ref, depth, opts) {
 
     if (Number.isInteger(+key)) {
       if (remaining-- === 0) {
-        values.push(new InspectSuspension(typedArray.length - values.length, depth + 1, { ...opts, breakAlways: true }))
+        values.push(
+          new InspectSuspension(typedArray.length - values.length, depth + 1, {
+            ...opts,
+            breakAlways: true
+          })
+        )
       } else if (remaining >= 0) {
         values.push(value)
       }
     } else {
-      values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, { ...opts, breakAlways: remaining < 0 }))
+      values.push(
+        new InspectPair(
+          ': ',
+          inspectKey(key, depth + 1, opts),
+          value,
+          depth + 1,
+          { ...opts, breakAlways: remaining < 0 }
+        )
+      )
     }
   }
 
@@ -719,10 +842,13 @@ function inspectTypedArray (typedArray, ref, depth, opts) {
 
   const header = typedArray.constructor.name + '(' + typedArray.length + ') [ '
 
-  return new InspectSequence(header, ' ]', ', ', values, ref, depth, { ...opts, tabulate: true })
+  return new InspectSequence(header, ' ]', ', ', values, ref, depth, {
+    ...opts,
+    tabulate: true
+  })
 }
 
-function inspectBuffer (buffer, ref, depth, opts) {
+function inspectBuffer(buffer, ref, depth, opts) {
   const {
     maxArrayLength = defaultMaxArrayLength,
     maxBufferLength = maxArrayLength
@@ -739,33 +865,72 @@ function inspectBuffer (buffer, ref, depth, opts) {
 
     if (Number.isInteger(+key)) {
       if (remaining-- === 0) {
-        values.push(new InspectSuspension(buffer.length - values.length, depth + 1, { ...opts, breakAlways: true }))
+        values.push(
+          new InspectSuspension(buffer.length - values.length, depth + 1, {
+            ...opts,
+            breakAlways: true
+          })
+        )
       } else if (remaining >= 0) {
-        values.push(new InspectLeaf(buffer[key].toString(16).padStart(2, '0'), null, depth + 1, opts))
+        values.push(
+          new InspectLeaf(
+            buffer[key].toString(16).padStart(2, '0'),
+            null,
+            depth + 1,
+            opts
+          )
+        )
       }
     } else {
-      values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(buffer[key], depth + 1, opts), depth + 1, { ...opts, breakAlways: remaining < 0 }))
+      values.push(
+        new InspectPair(
+          ': ',
+          inspectKey(key, depth + 1, opts),
+          inspectValue(buffer[key], depth + 1, opts),
+          depth + 1,
+          { ...opts, breakAlways: remaining < 0 }
+        )
+      )
     }
   }
 
   ref.decrement()
 
-  return new InspectSequence('<Buffer ', '>', ' ', values, ref, depth, { ...opts, tabulate: true })
+  return new InspectSequence('<Buffer ', '>', ' ', values, ref, depth, {
+    ...opts,
+    tabulate: true
+  })
 }
 
-function inspectDataView (dataView, ref, depth, opts) {
+function inspectDataView(dataView, ref, depth, opts) {
   ref.increment()
 
   const values = []
 
   for (const key of ['byteLength', 'byteOffset', 'buffer']) {
-    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(dataView[key], depth + 1, opts), depth + 1, opts))
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        inspectValue(dataView[key], depth + 1, opts),
+        depth + 1,
+        opts
+      )
+    )
   }
 
   for (const key in dataView) {
     if (key === 'constructor') continue
 
-    values.push(new InspectPair(': ', inspectKey(key, depth + 1, opts), inspectValue(dataView[key], depth + 1, opts), depth + 1, opts))
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        inspectValue(dataView[key], depth + 1, opts),
+        depth + 1,
+        opts
+      )
+    )
   }
 
   ref.decrement()
@@ -775,7 +940,7 @@ function inspectDataView (dataView, ref, depth, opts) {
   return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
 
-function inspectFunction (type, fn, depth, opts) {
+function inspectFunction(type, fn, depth, opts) {
   if (fn.toString().startsWith('class')) return inspectClass(fn, depth, opts)
 
   let tag = 'function'
@@ -783,13 +948,28 @@ function inspectFunction (type, fn, depth, opts) {
   if (type.isGeneratorFunction()) tag = 'generator ' + tag
   if (type.isAsyncFunction()) tag = 'async ' + tag
 
-  return new InspectLeaf('[' + tag + ' ' + (fn.name ? fn.name : '(anonymous)') + ']', styles.special, depth, opts)
+  return new InspectLeaf(
+    '[' + tag + ' ' + (fn.name ? fn.name : '(anonymous)') + ']',
+    styles.special,
+    depth,
+    opts
+  )
 }
 
-function inspectClass (ctor, depth, opts) {
-  return new InspectLeaf('[class ' + (ctor.name ? ctor.name : '(anonymous)') + ']', styles.special, depth, opts)
+function inspectClass(ctor, depth, opts) {
+  return new InspectLeaf(
+    '[class ' + (ctor.name ? ctor.name : '(anonymous)') + ']',
+    styles.special,
+    depth,
+    opts
+  )
 }
 
-function inspectExternal (external, depth, opts) {
-  return new InspectLeaf('[external 0x' + binding.getExternal(external).toString(16) + ']', styles.special, depth, opts)
+function inspectExternal(external, depth, opts) {
+  return new InspectLeaf(
+    '[external 0x' + binding.getExternal(external).toString(16) + ']',
+    styles.special,
+    depth,
+    opts
+  )
 }

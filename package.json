@@ -2,7 +2,10 @@
   "name": "bare-inspect",
   "version": "3.0.5",
   "description": "Inspect objects as strings for debugging",
-  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./package": "./package.json"
+  },
   "files": [
     "index.js",
     "binding.c",
@@ -12,7 +15,7 @@
   ],
   "addon": true,
   "scripts": {
-    "test": "standard && bare test.js"
+    "test": "prettier . --check && bare test.js"
   },
   "repository": {
     "type": "git",
@@ -31,6 +34,7 @@
   "devDependencies": {
     "brittle": "^3.3.2",
     "cmake-bare": "^1.1.6",
-    "standard": "^17.0.0"
+    "prettier": "^3.4.1",
+    "prettier-config-standard": "^7.0.0"
   }
 }

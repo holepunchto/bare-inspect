@@ -8,7 +8,7 @@ npm i bare-inspect
 
 ## Usage
 
-``` js
+```js
 const inspect = require('bare-inspect')
 
 console.log(inspect(globalThis))
