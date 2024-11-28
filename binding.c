@@ -3,7 +3,7 @@
 #include <js.h>
 
 static js_value_t *
-bare_inspect_get_promise_state (js_env_t *env, js_callback_info_t *info) {
+bare_inspect_get_promise_state(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   js_value_t *argv[1];
@@ -26,7 +26,7 @@ bare_inspect_get_promise_state (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_inspect_get_promise_result (js_env_t *env, js_callback_info_t *info) {
+bare_inspect_get_promise_result(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   js_value_t *argv[1];
@@ -45,7 +45,7 @@ bare_inspect_get_promise_result (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_inspect_get_external (js_env_t *env, js_callback_info_t *info) {
+bare_inspect_get_external(js_env_t *env, js_callback_info_t *info) {
   int err;
 
   size_t argc = 1;
@@ -68,7 +68,7 @@ bare_inspect_get_external (js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
-bare_inspect_exports (js_env_t *env, js_value_t *exports) {
+bare_inspect_exports(js_env_t *env, js_value_t *exports) {
   int err;
 
 #define V(name, fn) \
