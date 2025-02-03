@@ -181,7 +181,7 @@ test('functions', (t) => {
     '[function (anonymous)]',
     'anonymous function'
   )
-  t.is(inspect((foo = () => {}), foo), '[function foo]', 'named arrow function')
+  t.is(inspect((foo = () => {})), '[function foo]', 'named arrow function')
   t.is(
     inspect(() => {}),
     '[function (anonymous)]',
@@ -208,7 +208,7 @@ test('functions', (t) => {
     'anonymous async function'
   )
   t.is(
-    inspect((foo = async () => {}), foo),
+    inspect((foo = async () => {})),
     '[async function foo]',
     'named async arrow function'
   )
