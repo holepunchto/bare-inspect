@@ -557,7 +557,7 @@ function inspectRegExp(regExp, ref, depth, opts) {
 }
 
 function inspectError(error, ref, depth, opts) {
-  return new InspectLeaf(error.stack, null, depth, opts)
+  return new InspectLeaf(error.stack || error.toString(), null, depth, opts)
 }
 
 function inspectPromise(promise, ref, depth, opts) {
