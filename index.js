@@ -557,7 +557,45 @@ function inspectRegExp(regExp, ref, depth, opts) {
 }
 
 function inspectError(error, ref, depth, opts) {
-  return new InspectLeaf(error.stack || error.toString(), null, depth, opts)
+  let header
+
+  if ('stack' in error) {
+    header = error.stack
+
+    if (depth > 0) {
+      header = header.replaceAll('\n', '\n' + '  '.repeat(depth))
+    }
+  } else {
+    header = error.toString()
+  }
+
+  const values = []
+
+  for (const key of ['cause', 'errors']) {
+    if (key in error === false) continue
+
+    values.push(
+      new InspectPair(
+        ': ',
+        new InspectLeaf('[' + key + ']', depth + 1, null, opts),
+        inspectValue(error[key], depth + 1, opts),
+        depth + 1,
+        opts
+      )
+    )
+  }
+
+  if (values.length === 0) return new InspectLeaf(header, null, depth, opts)
+
+  return new InspectSequence(
+    header + ' {',
+    ' }',
+    ', ',
+    values,
+    ref,
+    depth,
+    opts
+  )
 }
 
 function inspectPromise(promise, ref, depth, opts) {
