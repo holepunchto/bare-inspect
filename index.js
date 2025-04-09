@@ -403,7 +403,7 @@ function inspectObject(type, object, depth, opts) {
 
   const maxDepth = typeof opts.depth === 'number' ? opts.depth : Infinity
 
-  if (maxDepth <= depth && !opts.boundless) {
+  if (maxDepth <= depth) {
     const constructor = object.constructor
 
     return new InspectLeaf(
@@ -557,38 +557,45 @@ function inspectRegExp(regExp, ref, depth, opts) {
 }
 
 function inspectError(error, ref, depth, opts) {
-  let base
+  let header
+
   if ('stack' in error) {
-    base = error.stack
+    header = error.stack
 
     if (depth > 0) {
-      const indentation = ' '.repeat(depth * 2)
-      base = base.replaceAll('\n', '\n' + indentation)
+      header = header.replaceAll('\n', '\n' + '  '.repeat(depth))
     }
   } else {
-    base = error.toString()
+    header = error.toString()
   }
 
   const values = []
+
   for (const key of ['cause', 'errors']) {
-    if (!(key in error)) continue
+    if (key in error === false) continue
 
     values.push(
       new InspectPair(
         ': ',
         new InspectLeaf('[' + key + ']', depth + 1, null, opts),
-        inspectValue(error[key], depth + 1, { ...opts, boundless: true }),
+        inspectValue(error[key], depth + 1, opts),
         depth + 1,
         opts
       )
     )
   }
 
-  const root = new InspectLeaf(base, null, depth, opts)
+  if (values.length === 0) return new InspectLeaf(header, null, depth, opts)
 
-  if (!values.length) return root
-
-  return new InspectSequence(root + ' {', ' }', ', ', values, ref, depth, opts)
+  return new InspectSequence(
+    header + ' {',
+    ' }',
+    ', ',
+    values,
+    ref,
+    depth,
+    opts
+  )
 }
 
 function inspectPromise(promise, ref, depth, opts) {

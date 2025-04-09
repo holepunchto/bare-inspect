@@ -63,7 +63,7 @@ test('promises', (t) => {
   t.plan(4)
 
   t.is(inspect(Promise.resolve(42)), 'Promise { 42 }', 'resolved')
-  t.is(inspect(Promise.reject(42)), 'Promise { <rejected> 42 }', 'rejected') // eslint-disable-line prefer-promise-reject-errors
+  t.is(inspect(Promise.reject(42)), 'Promise { <rejected> 42 }', 'rejected')
   t.is(
     inspect(new Promise((resolve) => queueMicrotask(resolve))),
     'Promise { <pending> }',
@@ -175,8 +175,15 @@ test('errors', (t) => {
       new AggregateError(
         [new Error('First error'), new Error('Second error')],
         'Error name',
-        { cause: new Error('Outer cause', { cause: new Error('Inner cause') }) }
-      )
+        {
+          cause: new Error('Outer cause', {
+            cause: new Error('Inner cause')
+          })
+        }
+      ),
+      {
+        depth: null
+      }
     )
   )
 })
