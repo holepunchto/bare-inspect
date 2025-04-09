@@ -169,6 +169,18 @@ test('objects', (t) => {
   t.is(inspect({ hello: 'world' }), "{ hello: 'world' }")
 })
 
+test('errors', (t) => {
+  t.comment(
+    inspect(
+      new AggregateError(
+        [new Error('First error'), new Error('Second error')],
+        'Error name',
+        { cause: new Error('Outer cause', { cause: new Error('Inner cause') }) }
+      )
+    )
+  )
+})
+
 test('functions', (t) => {
   let foo
   t.is(
