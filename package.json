@@ -1,6 +1,6 @@
 {
   "name": "bare-inspect",
-  "version": "3.0.7",
+  "version": "3.0.8",
   "description": "Inspect objects as strings for debugging",
   "exports": {
     ".": {
