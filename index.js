@@ -577,7 +577,21 @@ function inspectError(error, ref, depth, opts) {
     values.push(
       new InspectPair(
         ': ',
-        new InspectLeaf('[' + key + ']', depth + 1, null, opts),
+        new InspectLeaf('[' + key + ']', null, depth + 1, opts),
+        inspectValue(error[key], depth + 1, opts),
+        depth + 1,
+        opts
+      )
+    )
+  }
+
+  for (const key in error) {
+    if (key === 'constructor' || key === 'cause' || key === 'errors') continue
+
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
         inspectValue(error[key], depth + 1, opts),
         depth + 1,
         opts
