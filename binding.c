@@ -68,6 +68,25 @@ bare_inspect_get_external(js_env_t *env, js_callback_info_t *info) {
 }
 
 static js_value_t *
+bare_inspect_get_own_non_index_property_names(js_env_t *env, js_callback_info_t *info) {
+  int err;
+
+  size_t argc = 1;
+  js_value_t *argv[1];
+
+  err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
+  assert(err == 0);
+
+  assert(argc == 1);
+
+  js_value_t *result;
+  err = js_get_filtered_property_names(env, argv[0], js_key_own_only, js_property_only_enumerable, js_index_skip_indices, js_key_convert_to_string, &result);
+  assert(err == 0);
+
+  return result;
+}
+
+static js_value_t *
 bare_inspect_exports(js_env_t *env, js_value_t *exports) {
   int err;
 
@@ -83,6 +102,7 @@ bare_inspect_exports(js_env_t *env, js_value_t *exports) {
   V("getPromiseState", bare_inspect_get_promise_state)
   V("getPromiseResult", bare_inspect_get_promise_result)
   V("getExternal", bare_inspect_get_external)
+  V("getOwnNonIndexPropertyNames", bare_inspect_get_own_non_index_property_names)
 #undef V
 
   return exports;
