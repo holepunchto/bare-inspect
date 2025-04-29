@@ -29,7 +29,7 @@ module.exports = exports = function inspect(value, opts = {}) {
   return tree.toString()
 }
 
-const styles = (exports.styles = {
+exports.styles = {
   bigint: ansiEscapes.colorYellow,
   boolean: ansiEscapes.colorYellow,
   date: ansiEscapes.colorMagenta,
@@ -42,7 +42,9 @@ const styles = (exports.styles = {
   string: ansiEscapes.colorGreen,
   symbol: ansiEscapes.colorGreen,
   undefined: ansiEscapes.colorBrightBlack
-})
+}
+
+const styles = exports.styles
 
 function defaultStylize(colors) {
   return function stylize(value, style) {
@@ -847,8 +849,9 @@ function inspectSharedArrayBuffer(sharedArrayBuffer, ref, depth, opts) {
 }
 
 function inspectTypedArray(typedArray, ref, depth, opts) {
-  if (Buffer.isBuffer(typedArray))
+  if (Buffer.isBuffer(typedArray)) {
     return inspectBuffer(typedArray, ref, depth, opts)
+  }
 
   const {
     maxArrayLength = defaultMaxArrayLength,
