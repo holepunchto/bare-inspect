@@ -118,6 +118,18 @@ test('buffers', (t) => {
   `,
     'long buffer'
   )
+
+  t.is(
+    inspect(Buffer.alloc(40 * 1024 * 1024)),
+    trim`
+<Buffer
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  00 00 00 00 00 00 00 00 00 00 00 00 00 00
+  ... 41943000 more
+>
+  `,
+    'massive buffer'
+  )
 })
 
 test('typed arrays', (t) => {

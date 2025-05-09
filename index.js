@@ -505,35 +505,33 @@ function inspectArray(array, ref, depth, opts) {
 
   const values = []
 
-  let remaining = maxArrayLength
+  let remaining = Math.max(maxArrayLength, 0)
 
-  for (const key in array) {
-    if (key === 'constructor') continue
-
-    const value = inspectValue(array[key], depth + 1, opts)
-
-    if (Number.isInteger(+key)) {
-      if (remaining-- === 0) {
-        values.push(
-          new InspectSuspension(array.length - values.length, depth + 1, {
-            ...opts,
-            breakAlways: true
-          })
-        )
-      } else if (remaining >= 0) {
-        values.push(value)
-      }
-    } else {
+  for (let i = 0, n = array.length; i < n; i++) {
+    if (remaining-- === 0) {
       values.push(
-        new InspectPair(
-          ': ',
-          inspectKey(key, depth + 1, opts),
-          value,
-          depth + 1,
-          { ...opts, breakAlways: remaining < 0 }
-        )
+        new InspectSuspension(array.length - values.length, depth + 1, {
+          ...opts,
+          breakAlways: true
+        })
       )
+
+      break
     }
+
+    values.push(inspectValue(array[i], depth + 1, opts))
+  }
+
+  for (const key of binding.getOwnNonIndexPropertyNames(array)) {
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        inspectValue(array[key], depth + 1, opts),
+        depth + 1,
+        { ...opts, breakAlways: remaining < 0 }
+      )
+    )
   }
 
   ref.decrement()
@@ -862,35 +860,33 @@ function inspectTypedArray(typedArray, ref, depth, opts) {
 
   const values = []
 
-  let remaining = maxTypedArrayLength
+  let remaining = Math.max(maxTypedArrayLength, 0)
 
-  for (const key in typedArray) {
-    if (key === 'constructor') continue
-
-    const value = inspectValue(typedArray[key], depth + 1, opts)
-
-    if (Number.isInteger(+key)) {
-      if (remaining-- === 0) {
-        values.push(
-          new InspectSuspension(typedArray.length - values.length, depth + 1, {
-            ...opts,
-            breakAlways: true
-          })
-        )
-      } else if (remaining >= 0) {
-        values.push(value)
-      }
-    } else {
+  for (let i = 0, n = typedArray.length; i < n; i++) {
+    if (remaining-- === 0) {
       values.push(
-        new InspectPair(
-          ': ',
-          inspectKey(key, depth + 1, opts),
-          value,
-          depth + 1,
-          { ...opts, breakAlways: remaining < 0 }
-        )
+        new InspectSuspension(typedArray.length - values.length, depth + 1, {
+          ...opts,
+          breakAlways: true
+        })
       )
+
+      break
     }
+
+    values.push(inspectValue(typedArray[i], depth + 1, opts))
+  }
+
+  for (const key of binding.getOwnNonIndexPropertyNames(typedArray)) {
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        inspectValue(typedArray[key], depth + 1, opts),
+        depth + 1,
+        { ...opts, breakAlways: remaining < 0 }
+      )
+    )
   }
 
   ref.decrement()
@@ -913,40 +909,40 @@ function inspectBuffer(buffer, ref, depth, opts) {
 
   const values = []
 
-  let remaining = maxBufferLength
+  let remaining = Math.max(maxBufferLength, 0)
 
-  for (const key in buffer) {
-    if (key === 'constructor') continue
-
-    if (Number.isInteger(+key)) {
-      if (remaining-- === 0) {
-        values.push(
-          new InspectSuspension(buffer.length - values.length, depth + 1, {
-            ...opts,
-            breakAlways: true
-          })
-        )
-      } else if (remaining >= 0) {
-        values.push(
-          new InspectLeaf(
-            buffer[key].toString(16).padStart(2, '0'),
-            null,
-            depth + 1,
-            opts
-          )
-        )
-      }
-    } else {
+  for (let i = 0, n = buffer.byteLength; i < n; i++) {
+    if (remaining-- === 0) {
       values.push(
-        new InspectPair(
-          ': ',
-          inspectKey(key, depth + 1, opts),
-          inspectValue(buffer[key], depth + 1, opts),
-          depth + 1,
-          { ...opts, breakAlways: remaining < 0 }
-        )
+        new InspectSuspension(buffer.length - values.length, depth + 1, {
+          ...opts,
+          breakAlways: true
+        })
       )
+
+      break
     }
+
+    values.push(
+      new InspectLeaf(
+        buffer[i].toString(16).padStart(2, '0'),
+        null,
+        depth + 1,
+        opts
+      )
+    )
+  }
+
+  for (const key of binding.getOwnNonIndexPropertyNames(buffer)) {
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        inspectValue(buffer[key], depth + 1, opts),
+        depth + 1,
+        { ...opts, breakAlways: remaining < 0 }
+      )
+    )
   }
 
   ref.decrement()
@@ -974,9 +970,7 @@ function inspectDataView(dataView, ref, depth, opts) {
     )
   }
 
-  for (const key in dataView) {
-    if (key === 'constructor') continue
-
+  for (const key of binding.getOwnNonIndexPropertyNames(dataView)) {
     values.push(
       new InspectPair(
         ': ',
