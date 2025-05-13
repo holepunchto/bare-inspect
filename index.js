@@ -405,7 +405,7 @@ function inspectObject(type, object, depth, opts) {
 
   const maxDepth = typeof opts.depth === 'number' ? opts.depth : Infinity
 
-  if (maxDepth <= depth) {
+  if (maxDepth < depth) {
     const constructor = object.constructor
 
     return new InspectLeaf(
