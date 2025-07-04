@@ -183,18 +183,31 @@ test('objects', (t) => {
 test('errors', (t) => {
   t.comment(
     inspect(
+      new Error('Wrapped error', {
+        cause: new Error('Error cause')
+      }),
+      { depth: null }
+    )
+  )
+
+  t.comment(
+    inspect(
       new AggregateError(
         [new Error('First error'), new Error('Second error')],
-        'Error name',
-        {
-          cause: new Error('Outer cause', {
-            cause: new Error('Inner cause')
-          })
-        }
+        'Aggregate error'
       ),
-      {
-        depth: null
-      }
+      { depth: null }
+    )
+  )
+
+  t.comment(
+    inspect(
+      new SuppressedError(
+        new Error('Actual error'),
+        new Error('Masked error'),
+        'Suppressed error'
+      ),
+      { depth: null }
     )
   )
 })

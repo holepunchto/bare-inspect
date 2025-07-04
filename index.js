@@ -569,9 +569,17 @@ function inspectError(error, ref, depth, opts) {
     header = error.toString()
   }
 
+  const builtins = ['cause']
+
+  if (error.name === 'AggregateError') {
+    builtins.push('errors')
+  } else if (error.name === 'SuppressedError') {
+    builtins.push('error', 'suppressed')
+  }
+
   const values = []
 
-  for (const key of ['cause', 'errors']) {
+  for (const key of builtins) {
     if (key in error === false) continue
 
     values.push(
@@ -586,7 +594,7 @@ function inspectError(error, ref, depth, opts) {
   }
 
   for (const key in error) {
-    if (key === 'constructor' || key === 'cause' || key === 'errors') continue
+    if (key === 'constructor' || builtins.includes(key)) continue
 
     values.push(
       new InspectPair(
