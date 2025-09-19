@@ -232,7 +232,8 @@ class InspectSequence extends InspectNode {
     const split =
       this.values.length &&
       (offset + this.length > this.breakLength ||
-        indent * 2 + this.length > this.breakLength)
+        indent * 2 + this.length > this.breakLength ||
+        this.values.some((v) => v.breakAlways))
 
     let header = this.header
 
@@ -345,6 +346,16 @@ function inspectNull(depth, opts) {
   return new InspectLeaf('null', styles.null, depth, opts)
 }
 
+function inspectCustomString(value, depth, opts) {
+  if (value.includes('\n')) {
+    value = value.replaceAll('\n', '\n' + '  '.repeat(depth))
+
+    opts = { ...opts, breakAlways: true }
+  }
+
+  return new InspectLeaf(value, null, depth, opts)
+}
+
 function inspectBoolean(value, depth, opts) {
   return new InspectLeaf(value.toString(), styles.boolean, depth, opts)
 }
@@ -442,7 +453,7 @@ function inspectObject(type, object, depth, opts) {
       return inspectValue(value, depth, opts)
     }
 
-    return value
+    return inspectCustomString(value, depth, opts)
   }
 
   if (type.isArray()) return inspectArray(object, ref, depth, opts)

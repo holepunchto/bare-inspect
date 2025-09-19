@@ -48,6 +48,12 @@ test('arrays', (t) => {
   `,
     'long array'
   )
+
+  t.is(
+    inspect(['foo\nbar', 'one\ntwo']),
+    "[ 'foo\\nbar', 'one\\ntwo' ]",
+    'multi-line string array'
+  )
 })
 
 test('dates', (t) => {
@@ -468,6 +474,16 @@ test('custom inspect method', (t) => {
   t.is(inspect(new Foo()), 'Foo { bar: false }')
 })
 
+test('custom inspect method with multi-line string result', (t) => {
+  class Foo {
+    [Symbol.for('bare.inspect')]() {
+      return 'Foo\nBar'
+    }
+  }
+
+  t.is(inspect(new Foo()), 'Foo\nBar')
+})
+
 test('custom inspect method with cycle', (t) => {
   class Foo {
     [Symbol.for('bare.inspect')]() {
@@ -513,6 +529,24 @@ test('custom inspect method with custom stylize', (t) => {
   }
 
   t.is(inspect(new Foo(), { stylize }), 'FOO')
+})
+
+test('array of custom inspect method with multi-line string result', (t) => {
+  class Foo {
+    [Symbol.for('bare.inspect')]() {
+      return 'One\ntwo'
+    }
+  }
+
+  t.is(
+    inspect([new Foo()]),
+    trim`
+[
+  One
+  two
+]
+`
+  )
 })
 
 test('custom inspect method, Node.js compatibility', (t) => {
