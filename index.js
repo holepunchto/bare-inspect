@@ -350,7 +350,7 @@ function inspectCustomString(value, depth, opts) {
   if (value.includes('\n')) {
     value = value.replaceAll('\n', '\n' + '  '.repeat(depth))
 
-    opts.breakAlways = true
+    opts = { ...opts, breakAlways: true }
   }
 
   return new InspectLeaf(value, null, depth, opts)
