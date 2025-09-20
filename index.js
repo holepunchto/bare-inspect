@@ -169,7 +169,7 @@ class InspectPair extends InspectNode {
   constructor(delim, left, right, depth, opts) {
     const length = left.length + delim.length + right.length
 
-    if (left.breakAlways || delim.breakAlways || right.breakAlways) {
+    if (left.breakAlways || right.breakAlways) {
       opts = { ...opts, breakAlways: true }
     }
 
