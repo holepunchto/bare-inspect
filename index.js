@@ -142,6 +142,12 @@ class InspectLeaf extends InspectNode {
   constructor(value, color, depth, opts) {
     const length = value.length
 
+    if (value.includes('\n')) {
+      value = value.replaceAll('\n', '\n' + '  '.repeat(depth))
+
+      opts = { ...opts, breakAlways: true }
+    }
+
     super(depth, length, opts)
 
     this.value = value
@@ -162,6 +168,10 @@ class InspectLeaf extends InspectNode {
 class InspectPair extends InspectNode {
   constructor(delim, left, right, depth, opts) {
     const length = left.length + delim.length + right.length
+
+    if (left.breakAlways || delim.breakAlways || right.breakAlways) {
+      opts = { ...opts, breakAlways: true }
+    }
 
     super(depth, length, opts)
 
@@ -191,7 +201,6 @@ class InspectSuspension extends InspectNode {
 
     super(depth, label.length, opts)
 
-    this.overflow = overflow
     this.label = label
   }
 
@@ -216,6 +225,10 @@ class InspectSequence extends InspectNode {
       ) +
       footer.length
 
+    if (values.some((value) => value.breakAlways)) {
+      opts = { ...opts, breakAlways: true }
+    }
+
     super(depth, length, opts)
 
     this.header = header
@@ -230,10 +243,10 @@ class InspectSequence extends InspectNode {
     const { offset = 0, indent = 0 } = opts
 
     const split =
-      this.values.length &&
-      (offset + this.length > this.breakLength ||
-        indent * 2 + this.length > this.breakLength ||
-        this.values.some((v) => v.breakAlways))
+      this.breakAlways ||
+      (this.values.length &&
+        (offset + this.length > this.breakLength ||
+          indent * 2 + this.length > this.breakLength))
 
     let header = this.header
 
@@ -346,16 +359,6 @@ function inspectNull(depth, opts) {
   return new InspectLeaf('null', styles.null, depth, opts)
 }
 
-function inspectCustomString(value, depth, opts) {
-  if (value.includes('\n')) {
-    value = value.replaceAll('\n', '\n' + '  '.repeat(depth))
-
-    opts = { ...opts, breakAlways: true }
-  }
-
-  return new InspectLeaf(value, null, depth, opts)
-}
-
 function inspectBoolean(value, depth, opts) {
   return new InspectLeaf(value.toString(), styles.boolean, depth, opts)
 }
@@ -453,7 +456,7 @@ function inspectObject(type, object, depth, opts) {
       return inspectValue(value, depth, opts)
     }
 
-    return inspectCustomString(value, depth, opts)
+    return new InspectLeaf(value, null, depth, opts)
   }
 
   if (type.isArray()) return inspectArray(object, ref, depth, opts)
