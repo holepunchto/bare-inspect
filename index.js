@@ -379,16 +379,33 @@ function inspectBigInt(value, depth, opts) {
   return new InspectLeaf(value.toString(10) + 'n', styles.bigint, depth, opts)
 }
 
-function inspectString(value, depth, opts) {
-  const string = value
-    .replace(/'/g, "\\'")
+const STRING_ESCAPES =
+  /[\ud800-\udbff][\udc00-\udfff]|[\u0000-\u001f'\\\ud800-\udfff]/g
 
-    // Escape control characters
-    .replace(/[\b]/g, '\\b')
-    .replace(/[\f]/g, '\\f')
-    .replace(/[\n]/g, '\\n')
-    .replace(/[\r]/g, '\\r')
-    .replace(/[\t]/g, '\\t')
+function inspectString(value, depth, opts) {
+  // https://tc39.es/ecma262/multipage/structured-data.html#sec-quotejsonstring
+  const string = value.replace(STRING_ESCAPES, (match) => {
+    if (match.length === 2) return match
+
+    switch (match) {
+      case "'":
+        return "\\'"
+      case '\\':
+        return '\\\\'
+      case '\b':
+        return '\\b'
+      case '\t':
+        return '\\t'
+      case '\n':
+        return '\\n'
+      case '\f':
+        return '\\f'
+      case '\r':
+        return '\\r'
+      default:
+        return '\\u' + match.charCodeAt(0).toString(16).padStart(4, '0')
+    }
+  })
 
   return new InspectLeaf("'" + string + "'", styles.string, depth, opts)
 }

@@ -25,12 +25,12 @@ test('bigints', (t) => {
 
 test('strings', (t) => {
   t.is(inspect('foo'), "'foo'", 'without quotes')
-
   t.is(inspect("f'oo"), "'f\\'oo'", 'with single quotes')
   t.is(inspect('f"oo'), "'f\"oo'", 'with double quotes')
   t.is(inspect('f`oo'), "'f`oo'", 'with backticks')
-
   t.is(inspect('f\noo'), "'f\\noo'", 'with newline')
+  t.is(inspect('f\\oo'), "'f\\\\oo'", 'with backslash')
+  t.is(inspect('f\ud800oo'), "'f\\ud800oo'", 'with lone high surrogate')
 })
 
 test('arrays', (t) => {
