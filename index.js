@@ -2,8 +2,6 @@ const ansiEscapes = require('bare-ansi-escapes')
 const getType = require('bare-type')
 const binding = require('./binding')
 
-const PLAIN_KEY = /^[a-zA-Z_][a-zA-Z_0-9]*$/
-
 const defaultDepth = 2
 const defaultBreakLength = 80
 const defaultMaxArrayLength = 40
@@ -218,11 +216,7 @@ class InspectSequence extends InspectNode {
     const length =
       (ref.circular ? '<ref *>'.length + 1 : 0) +
       header.length +
-      values.reduce(
-        (length, value, i) =>
-          length + value.length + (i === 0 ? 0 : delim.length),
-        0
-      ) +
+      values.reduce((length, value, i) => length + value.length + (i === 0 ? 0 : delim.length), 0) +
       footer.length
 
     if (values.some((value) => value.breakAlways)) {
@@ -245,8 +239,7 @@ class InspectSequence extends InspectNode {
     const split =
       this.breakAlways ||
       (this.values.length &&
-        (offset + this.length > this.breakLength ||
-          indent * 2 + this.length > this.breakLength))
+        (offset + this.length > this.breakLength || indent * 2 + this.length > this.breakLength))
 
     let header = this.header
 
@@ -273,17 +266,14 @@ class InspectSequence extends InspectNode {
 
     if (this.tabulate) {
       const widest = this.values.reduce(
-        (length, value) =>
-          value.breakAlways ? length : Math.max(length, value.length),
+        (length, value) => (value.breakAlways ? length : Math.max(length, value.length)),
         0
       )
 
       if (widest) {
         columns = Math.max(
           columns,
-          Math.floor(
-            (this.breakLength - indent * 2) / (widest + this.delim.length)
-          )
+          Math.floor((this.breakLength - indent * 2) / (widest + this.delim.length))
         )
 
         if (columns > 1) pad = widest
@@ -379,8 +369,7 @@ function inspectBigInt(value, depth, opts) {
   return new InspectLeaf(value.toString(10) + 'n', styles.bigint, depth, opts)
 }
 
-const STRING_ESCAPES =
-  /[\ud800-\udbff][\udc00-\udfff]|[\u0000-\u001f'\\\ud800-\udfff]/g
+const STRING_ESCAPES = /[\ud800-\udbff][\udc00-\udfff]|[\u0000-\u001f'\\\ud800-\udfff]/g
 
 function inspectString(value, depth, opts) {
   // https://tc39.es/ecma262/multipage/structured-data.html#sec-quotejsonstring
@@ -414,6 +403,8 @@ function inspectSymbol(value, depth, opts) {
   return new InspectLeaf(value.toString(), styles.symbol, depth, opts)
 }
 
+const PLAIN_KEY = /^[a-zA-Z_][a-zA-Z_0-9]*$/
+
 function inspectKey(value, depth, opts) {
   if (PLAIN_KEY.test(value)) {
     return new InspectLeaf(value, null, depth, opts)
@@ -440,9 +431,7 @@ function inspectObject(type, object, depth, opts) {
     const constructor = object.constructor
 
     return new InspectLeaf(
-      '[' +
-        (constructor && constructor.name ? constructor.name : 'Object') +
-        ']',
+      '[' + (constructor && constructor.name ? constructor.name : 'Object') + ']',
       styles.special,
       depth,
       opts
@@ -450,8 +439,7 @@ function inspectObject(type, object, depth, opts) {
   }
 
   const inspect =
-    object[Symbol.for('bare.inspect')] ||
-    object[Symbol.for('nodejs.util.inspect.custom')]
+    object[Symbol.for('bare.inspect')] || object[Symbol.for('nodejs.util.inspect.custom')]
 
   if (typeof inspect === 'function') {
     const value = inspect.call(
@@ -487,8 +475,7 @@ function inspectObject(type, object, depth, opts) {
   if (type.isWeakSet()) return inspectWeakSet(object, ref, depth, opts)
   if (type.isWeakRef()) return inspectWeakRef(object, ref, depth, opts)
   if (type.isArrayBuffer()) return inspectArrayBuffer(object, ref, depth, opts)
-  if (type.isSharedArrayBuffer())
-    return inspectSharedArrayBuffer(object, ref, depth, opts)
+  if (type.isSharedArrayBuffer()) return inspectSharedArrayBuffer(object, ref, depth, opts)
   if (type.isTypedArray()) return inspectTypedArray(object, ref, depth, opts)
   if (type.isDataView()) return inspectDataView(object, ref, depth, opts)
 
@@ -640,15 +627,7 @@ function inspectError(error, ref, depth, opts) {
 
   if (values.length === 0) return new InspectLeaf(header, null, depth, opts)
 
-  return new InspectSequence(
-    header + ' {',
-    ' }',
-    ', ',
-    values,
-    ref,
-    depth,
-    opts
-  )
+  return new InspectSequence(header + ' {', ' }', ', ', values, ref, depth, opts)
 }
 
 function inspectPromise(promise, ref, depth, opts) {
@@ -682,10 +661,7 @@ function inspectPromise(promise, ref, depth, opts) {
 }
 
 function inspectMap(map, ref, depth, opts) {
-  const {
-    maxArrayLength = defaultMaxArrayLength,
-    maxMapLength = maxArrayLength
-  } = opts
+  const { maxArrayLength = defaultMaxArrayLength, maxMapLength = maxArrayLength } = opts
 
   ref.increment()
 
@@ -721,13 +697,10 @@ function inspectMap(map, ref, depth, opts) {
     const value = inspectValue(map[key], depth + 1, opts)
 
     values.push(
-      new InspectPair(
-        ': ',
-        inspectKey(key, depth + 1, opts),
-        value,
-        depth + 1,
-        { ...opts, breakAlways: remaining < 0 }
-      )
+      new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, {
+        ...opts,
+        breakAlways: remaining < 0
+      })
     )
   }
 
@@ -742,10 +715,7 @@ function inspectMap(map, ref, depth, opts) {
 }
 
 function inspectSet(set, ref, depth, opts) {
-  const {
-    maxArrayLength = defaultMaxArrayLength,
-    maxSetLength = maxArrayLength
-  } = opts
+  const { maxArrayLength = defaultMaxArrayLength, maxSetLength = maxArrayLength } = opts
 
   ref.increment()
 
@@ -773,13 +743,10 @@ function inspectSet(set, ref, depth, opts) {
     const value = inspectValue(set[key], depth + 1, opts)
 
     values.push(
-      new InspectPair(
-        ': ',
-        inspectKey(key, depth + 1, opts),
-        value,
-        depth + 1,
-        { ...opts, breakAlways: remaining < 0 }
-      )
+      new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, {
+        ...opts,
+        breakAlways: remaining < 0
+      })
     )
   }
 
@@ -890,10 +857,7 @@ function inspectTypedArray(typedArray, ref, depth, opts) {
     return inspectBuffer(typedArray, ref, depth, opts)
   }
 
-  const {
-    maxArrayLength = defaultMaxArrayLength,
-    maxTypedArrayLength = maxArrayLength
-  } = opts
+  const { maxArrayLength = defaultMaxArrayLength, maxTypedArrayLength = maxArrayLength } = opts
 
   ref.increment()
 
@@ -939,10 +903,7 @@ function inspectTypedArray(typedArray, ref, depth, opts) {
 }
 
 function inspectBuffer(buffer, ref, depth, opts) {
-  const {
-    maxArrayLength = defaultMaxArrayLength,
-    maxBufferLength = maxArrayLength
-  } = opts
+  const { maxArrayLength = defaultMaxArrayLength, maxBufferLength = maxArrayLength } = opts
 
   ref.increment()
 
@@ -962,14 +923,7 @@ function inspectBuffer(buffer, ref, depth, opts) {
       break
     }
 
-    values.push(
-      new InspectLeaf(
-        buffer[i].toString(16).padStart(2, '0'),
-        null,
-        depth + 1,
-        opts
-      )
-    )
+    values.push(new InspectLeaf(buffer[i].toString(16).padStart(2, '0'), null, depth + 1, opts))
   }
 
   for (const key of binding.getOwnNonIndexPropertyNames(buffer)) {

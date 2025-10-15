@@ -49,11 +49,7 @@ test('arrays', (t) => {
     'long array'
   )
 
-  t.is(
-    inspect(['foo\nbar', 'one\ntwo']),
-    "[ 'foo\\nbar', 'one\\ntwo' ]",
-    'multi-line string array'
-  )
+  t.is(inspect(['foo\nbar', 'one\ntwo']), "[ 'foo\\nbar', 'one\\ntwo' ]", 'multi-line string array')
 })
 
 test('dates', (t) => {
@@ -96,11 +92,7 @@ test('maps', (t) => {
 test('set', (t) => {
   t.is(inspect(new Set()), 'Set(0) {}', 'empty set')
 
-  t.is(
-    inspect(new Set(['foo', 42, true])),
-    "Set(3) { 'foo', 42, true }",
-    'short set'
-  )
+  t.is(inspect(new Set(['foo', 42, true])), "Set(3) { 'foo', 42, true }", 'short set')
 })
 
 test('array views', (t) => {
@@ -108,11 +100,7 @@ test('array views', (t) => {
 })
 
 test('buffers', (t) => {
-  t.is(
-    inspect(Buffer.from([2, 4, 8, 16])),
-    '<Buffer 02 04 08 10>',
-    'short buffer'
-  )
+  t.is(inspect(Buffer.from([2, 4, 8, 16])), '<Buffer 02 04 08 10>', 'short buffer')
 
   t.is(
     inspect(Buffer.alloc(40)),
@@ -141,36 +129,15 @@ test('buffers', (t) => {
 test('typed arrays', (t) => {
   t.is(inspect(Int8Array.from([2, 4, 8, 16])), 'Int8Array(4) [ 2, 4, 8, 16 ]')
   t.is(inspect(Uint8Array.from([2, 4, 8, 16])), 'Uint8Array(4) [ 2, 4, 8, 16 ]')
-  t.is(
-    inspect(Uint8ClampedArray.from([2, 4, 8, 16])),
-    'Uint8ClampedArray(4) [ 2, 4, 8, 16 ]'
-  )
+  t.is(inspect(Uint8ClampedArray.from([2, 4, 8, 16])), 'Uint8ClampedArray(4) [ 2, 4, 8, 16 ]')
   t.is(inspect(Int16Array.from([2, 4, 8, 16])), 'Int16Array(4) [ 2, 4, 8, 16 ]')
-  t.is(
-    inspect(Uint16Array.from([2, 4, 8, 16])),
-    'Uint16Array(4) [ 2, 4, 8, 16 ]'
-  )
+  t.is(inspect(Uint16Array.from([2, 4, 8, 16])), 'Uint16Array(4) [ 2, 4, 8, 16 ]')
   t.is(inspect(Int32Array.from([2, 4, 8, 16])), 'Int32Array(4) [ 2, 4, 8, 16 ]')
-  t.is(
-    inspect(Uint32Array.from([2, 4, 8, 16])),
-    'Uint32Array(4) [ 2, 4, 8, 16 ]'
-  )
-  t.is(
-    inspect(Float32Array.from([2, 4, 8, 16])),
-    'Float32Array(4) [ 2, 4, 8, 16 ]'
-  )
-  t.is(
-    inspect(Float64Array.from([2, 4, 8, 16])),
-    'Float64Array(4) [ 2, 4, 8, 16 ]'
-  )
-  t.is(
-    inspect(BigInt64Array.from([2n, 4n, 8n, 16n])),
-    'BigInt64Array(4) [ 2n, 4n, 8n, 16n ]'
-  )
-  t.is(
-    inspect(BigUint64Array.from([2n, 4n, 8n, 16n])),
-    'BigUint64Array(4) [ 2n, 4n, 8n, 16n ]'
-  )
+  t.is(inspect(Uint32Array.from([2, 4, 8, 16])), 'Uint32Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(Float32Array.from([2, 4, 8, 16])), 'Float32Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(Float64Array.from([2, 4, 8, 16])), 'Float64Array(4) [ 2, 4, 8, 16 ]')
+  t.is(inspect(BigInt64Array.from([2n, 4n, 8n, 16n])), 'BigInt64Array(4) [ 2n, 4n, 8n, 16n ]')
+  t.is(inspect(BigUint64Array.from([2n, 4n, 8n, 16n])), 'BigUint64Array(4) [ 2n, 4n, 8n, 16n ]')
 })
 
 test('data views', (t) => {
@@ -198,21 +165,14 @@ test('errors', (t) => {
 
   t.comment(
     inspect(
-      new AggregateError(
-        [new Error('First error'), new Error('Second error')],
-        'Aggregate error'
-      ),
+      new AggregateError([new Error('First error'), new Error('Second error')], 'Aggregate error'),
       { depth: null }
     )
   )
 
   t.comment(
     inspect(
-      new SuppressedError(
-        new Error('Actual error'),
-        new Error('Masked error'),
-        'Suppressed error'
-      ),
+      new SuppressedError(new Error('Actual error'), new Error('Masked error'), 'Suppressed error'),
       { depth: null }
     )
   )
@@ -256,11 +216,7 @@ test('functions', (t) => {
     '[async function (anonymous)]',
     'anonymous async function'
   )
-  t.is(
-    inspect((foo = async () => {})),
-    '[async function foo]',
-    'named async arrow function'
-  )
+  t.is(inspect((foo = async () => {})), '[async function foo]', 'named async arrow function')
   t.is(
     inspect(async () => {}),
     '[async function (anonymous)]',
@@ -326,10 +282,7 @@ test('recursive typed array reference', (t) => {
   const arr = new Uint8Array(4)
   arr.arr = arr
 
-  t.is(
-    inspect(arr),
-    '<ref *1> Uint8Array(4) [ 0, 0, 0, 0, arr: [circular *1] ]'
-  )
+  t.is(inspect(arr), '<ref *1> Uint8Array(4) [ 0, 0, 0, 0, arr: [circular *1] ]')
 })
 
 test('object with same reference twice', (t) => {
@@ -443,14 +396,8 @@ Uint8Array(48) [
 })
 
 test('deep object', (t) => {
-  t.is(
-    inspect({ foo: { bar: { baz: { qux: 42 } } } }),
-    '{ foo: { bar: { baz: [Object] } } }'
-  )
-  t.is(
-    inspect({ foo: { bar: { baz: new Date() } } }),
-    '{ foo: { bar: { baz: [Date] } } }'
-  )
+  t.is(inspect({ foo: { bar: { baz: { qux: 42 } } } }), '{ foo: { bar: { baz: [Object] } } }')
+  t.is(inspect({ foo: { bar: { baz: new Date() } } }), '{ foo: { bar: { baz: [Date] } } }')
 })
 
 test('custom inspect method', (t) => {
