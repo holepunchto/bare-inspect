@@ -406,6 +406,10 @@ function inspectSymbol(value, depth, opts) {
 const PLAIN_KEY = /^[a-zA-Z_][a-zA-Z_0-9]*$/
 
 function inspectKey(value, depth, opts) {
+  const type = getType(value)
+
+  if (type.isSymbol()) return inspectValue(value, depth, opts)
+
   if (PLAIN_KEY.test(value)) {
     return new InspectLeaf(value, null, depth, opts)
   } else {
@@ -486,6 +490,18 @@ function inspectObject(type, object, depth, opts) {
   for (const key in object) {
     if (key === 'constructor') continue
 
+    values.push(
+      new InspectPair(
+        ': ',
+        inspectKey(key, depth + 1, opts),
+        inspectValue(object[key], depth + 1, opts),
+        depth + 1,
+        opts
+      )
+    )
+  }
+
+  for (const key of Object.getOwnPropertySymbols(object)) {
     values.push(
       new InspectPair(
         ': ',
