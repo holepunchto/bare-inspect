@@ -152,7 +152,10 @@ test('objects', (t) => {
 
   t.is(inspect({ hello: 'world' }), "{ hello: 'world' }")
 
-  t.is(inspect({ [Symbol('foo')]: 'bar' }), "{ Symbol(foo): 'bar' }")
+  t.is(
+    inspect({ foo: 'bar', [Symbol('foo')]: 'bar', bar: 'foo' }),
+    "{ foo: 'bar', bar: 'foo', Symbol(foo): 'bar' }"
+  )
 })
 
 test('errors', (t) => {

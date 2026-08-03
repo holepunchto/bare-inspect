@@ -487,7 +487,9 @@ function inspectObject(type, object, depth, opts) {
 
   const values = []
 
-  for (const key of Object.getOwnPropertySymbols(object)) {
+  for (const key in object) {
+    if (key === 'constructor') continue
+
     values.push(
       new InspectPair(
         ': ',
@@ -499,9 +501,7 @@ function inspectObject(type, object, depth, opts) {
     )
   }
 
-  for (const key in object) {
-    if (key === 'constructor') continue
-
+  for (const key of Object.getOwnPropertySymbols(object)) {
     values.push(
       new InspectPair(
         ': ',
