@@ -151,6 +151,8 @@ test('objects', (t) => {
   t.is(inspect({}), '{}', 'empty object')
 
   t.is(inspect({ hello: 'world' }), "{ hello: 'world' }")
+
+  t.is(inspect({ [Symbol('foo')]: 'bar' }), "{ Symbol(foo): 'bar' }")
 })
 
 test('errors', (t) => {
