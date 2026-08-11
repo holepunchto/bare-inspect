@@ -306,7 +306,8 @@ class InspectSequence extends InspectNode {
 
         string += value.toString({ offset })
 
-        offset += value.length
+        // TODO Lunte thinks this refers to `const { offset }...` further up
+        offset += value.length // eslint-disable-line
       }
     }
 
