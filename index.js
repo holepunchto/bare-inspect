@@ -407,11 +407,9 @@ function inspectSymbol(value, depth, opts) {
 const PLAIN_KEY = /^[a-zA-Z_][a-zA-Z_0-9]*$/
 
 function inspectKey(value, depth, opts) {
-  const type = getType(value)
-
-  if (type.isSymbol()) return inspectValue(value, depth, opts)
-
-  if (PLAIN_KEY.test(value)) {
+  if (typeof value === 'symbol') {
+    return inspectValue(value, depth, opts)
+  } else if (PLAIN_KEY.test(value)) {
     return new InspectLeaf(value, null, depth, opts)
   } else {
     return inspectValue(value, depth, opts)
