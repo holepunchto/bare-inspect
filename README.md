@@ -14,10 +14,10 @@ const inspect = require('bare-inspect')
 console.log(inspect(globalThis))
 ```
 
-## License
-
-Apache-2.0
-
 ## API
 
 See the [`bare-inspect` reference](https://docs.pears.com/reference/bare/modules/bare-inspect).
+
+## License
+
+Apache-2.0
