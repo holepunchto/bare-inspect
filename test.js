@@ -522,6 +522,85 @@ test('custom inspect method, Node.js compatibility', (t) => {
   t.is(inspect(new Foo()), 'Foo { bar: false }')
 })
 
+test('accessors are not invoked', (t) => {
+  t.is(inspect({ get foo() {} }), '{ foo: [getter] }', 'getter')
+  t.is(inspect({ set foo(value) {} }), '{ foo: [setter] }', 'setter')
+
+  t.is(
+    inspect({ get foo() {}, set foo(value) {} }),
+    '{ foo: [getter/setter] }',
+    'getter and setter'
+  )
+
+  t.is(
+    inspect(
+      Object.defineProperty({}, 'foo', {
+        get() {
+          t.fail('getter was invoked')
+        },
+        enumerable: true
+      })
+    ),
+    '{ foo: [getter] }',
+    'getter that must not run'
+  )
+})
+
+test('invalid date', (t) => {
+  t.is(inspect(new Date(NaN)), 'Invalid Date')
+})
+
+test('custom inspect method that throws', (t) => {
+  const value = {
+    [Symbol.for('bare.inspect')]() {
+      throw new TypeError('nope')
+    }
+  }
+
+  t.is(inspect(value), '<inspect threw TypeError: nope>')
+})
+
+test('value that resists inspection', (t) => {
+  const boom = () => {
+    throw new Error('boom')
+  }
+
+  t.execution(() => inspect(new Proxy({}, { ownKeys: boom })), 'proxy own keys')
+
+  t.execution(
+    () => inspect(new Proxy({ foo: 1 }, { getOwnPropertyDescriptor: boom })),
+    'proxy descriptors'
+  )
+
+  const map = new Map([[1, 2]])
+  Object.defineProperty(map, 'size', { get: boom })
+  t.is(inspect(map), 'Map(undefined) { 1 => 2 }', 'map that shadows its size')
+
+  const set = new Set([1])
+  set[Symbol.iterator] = boom
+  t.is(inspect(set), 'Set(1) {}', 'set that shadows its iterator')
+
+  const weakRef = new WeakRef({})
+  weakRef.deref = boom
+  t.is(inspect(weakRef), 'WeakRef { <cleared> }', 'weak reference that shadows deref')
+
+  const fn = function foo() {}
+  fn.toString = boom
+  t.is(inspect(fn), '[function foo]', 'function that shadows toString')
+
+  const array = [1]
+  array.constructor = null
+  t.is(inspect(array), '[ 1, constructor: null ]', 'array without a constructor')
+
+  const error = new Error('x')
+  Object.defineProperty(error, 'stack', { get: boom })
+  t.is(inspect(error), 'Error: x', 'error that hides its stack')
+})
+
+test('error keeps its stack', (t) => {
+  t.ok(inspect(new Error('boom')).split('\n').length > 1)
+})
+
 function trim(strings, ...substitutions) {
   return String.raw(strings, ...substitutions).trim()
 }

@@ -431,30 +431,37 @@ function inspectObject(type, object, depth, opts) {
   const maxDepth = typeof opts.depth === 'number' ? opts.depth : Infinity
 
   if (maxDepth < depth) {
-    const constructor = object.constructor
+    const name = nameOf(object)
 
-    return new InspectLeaf(
-      '[' + (constructor && constructor.name ? constructor.name : 'Object') + ']',
-      styles.special,
-      depth,
-      opts
-    )
+    return new InspectLeaf('[' + (name || 'Object') + ']', styles.special, depth, opts)
   }
 
-  const inspect =
-    object[Symbol.for('bare.inspect')] || object[Symbol.for('nodejs.util.inspect.custom')]
+  const { value: inspect } = attempt(
+    () => object[Symbol.for('bare.inspect')] || object[Symbol.for('nodejs.util.inspect.custom')]
+  )
 
   if (typeof inspect === 'function') {
-    const value = inspect.call(
-      object,
-      typeof opts.depth === 'number' ? opts.depth - depth : null,
-      {
-        colors: opts.colors,
-        breakLength: opts.breakLength,
-        stylize: opts.stylize
-      },
-      exports
+    const { value, threw, error } = attempt(() =>
+      inspect.call(
+        object,
+        typeof opts.depth === 'number' ? opts.depth - depth : null,
+        {
+          colors: opts.colors,
+          breakLength: opts.breakLength,
+          stylize: opts.stylize
+        },
+        exports
+      )
     )
+
+    if (threw) {
+      return new InspectLeaf(
+        '<inspect threw ' + errorLabel(error) + '>',
+        styles.special,
+        depth,
+        opts
+      )
+    }
 
     if (typeof value === 'object' && value !== null) {
       refs.set(value, ref)
@@ -486,26 +493,26 @@ function inspectObject(type, object, depth, opts) {
 
   const values = []
 
-  for (const key in object) {
+  for (const key of keysOf(object)) {
     if (key === 'constructor') continue
 
     values.push(
       new InspectPair(
         ': ',
         inspectKey(key, depth + 1, opts),
-        inspectValue(object[key], depth + 1, opts),
+        inspectProperty(object, key, depth + 1, opts),
         depth + 1,
         opts
       )
     )
   }
 
-  for (const key of Object.getOwnPropertySymbols(object)) {
+  for (const key of symbolsOf(object)) {
     values.push(
       new InspectPair(
         ': ',
         inspectKey(key, depth + 1, opts),
-        inspectValue(object[key], depth + 1, opts),
+        inspectProperty(object, key, depth + 1, opts),
         depth + 1,
         opts
       )
@@ -516,17 +523,13 @@ function inspectObject(type, object, depth, opts) {
 
   let header = '{ '
 
-  const tag = object[Symbol.toStringTag]
+  const { value: tag } = attempt(() => object[Symbol.toStringTag])
 
-  if (tag) header = '[' + tag + '] ' + header
+  if (typeof tag === 'string' && tag) header = '[' + tag + '] ' + header
 
-  if (object.constructor) {
-    const name = object.constructor.name
+  const name = nameOf(object)
 
-    if (name && name !== 'Object') {
-      header = object.constructor.name + ' ' + header
-    }
-  }
+  if (name && name !== 'Object') header = name + ' ' + header
 
   return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
@@ -552,15 +555,15 @@ function inspectArray(array, ref, depth, opts) {
       break
     }
 
-    values.push(inspectValue(array[i], depth + 1, opts))
+    values.push(inspectProperty(array, i, depth + 1, opts))
   }
 
-  for (const key of binding.getOwnNonIndexPropertyNames(array)) {
+  for (const key of nonIndexKeysOf(array)) {
     values.push(
       new InspectPair(
         ': ',
         inspectKey(key, depth + 1, opts),
-        inspectValue(array[key], depth + 1, opts),
+        inspectProperty(array, key, depth + 1, opts),
         depth + 1,
         { ...opts, breakAlways: remaining < 0 }
       )
@@ -571,9 +574,9 @@ function inspectArray(array, ref, depth, opts) {
 
   let header = '[ '
 
-  if (array.constructor.name !== 'Array') {
-    header = array.constructor.name + '(' + array.length + ') ' + header
-  }
+  const name = nameOf(array)
+
+  if (name && name !== 'Array') header = name + '(' + array.length + ') ' + header
 
   return new InspectSequence(header, ' ]', ', ', values, ref, depth, {
     ...opts,
@@ -581,59 +584,92 @@ function inspectArray(array, ref, depth, opts) {
   })
 }
 
+function inspectProperty(object, key, depth, opts) {
+  const descriptor = descriptorOf(object, key)
+
+  if (descriptor === null) {
+    return new InspectLeaf('<unreadable>', styles.special, depth, opts)
+  }
+
+  if (descriptor === undefined) return inspectUndefined(depth, opts)
+
+  if ('value' in descriptor === false) {
+    let label = '[getter/setter]'
+
+    if (descriptor.get === undefined) label = '[setter]'
+    else if (descriptor.set === undefined) label = '[getter]'
+
+    return new InspectLeaf(label, styles.special, depth, opts)
+  }
+
+  return inspectValue(descriptor.value, depth, opts)
+}
+
 function inspectDate(date, ref, depth, opts) {
-  return new InspectLeaf(date.toISOString(), styles.date, depth, opts)
+  const { value: time } = attempt(() => date.getTime())
+
+  if (Number.isNaN(time)) {
+    return new InspectLeaf('Invalid Date', styles.date, depth, opts)
+  }
+
+  const { value: string } = attempt(() => date.toISOString())
+
+  return new InspectLeaf(string || '[Date]', styles.date, depth, opts)
 }
 
 function inspectRegExp(regExp, ref, depth, opts) {
-  return new InspectLeaf(regExp.toString(), styles.regexp, depth, opts)
+  const { value: string } = attempt(() => regExp.toString())
+
+  return new InspectLeaf(string || '[RegExp]', styles.regexp, depth, opts)
 }
 
 function inspectError(error, ref, depth, opts) {
-  let header
+  let header = attempt(() => error.stack).value
 
-  if ('stack' in error) {
-    header = error.stack
-
+  if (typeof header === 'string') {
     if (depth > 0) {
       header = header.replaceAll('\n', '\n' + '  '.repeat(depth))
     }
   } else {
-    header = error.toString()
+    header = attempt(() => error.toString()).value
+
+    if (typeof header !== 'string') header = errorLabel(error)
   }
 
   const builtins = ['cause']
 
-  if (error.name === 'AggregateError') {
+  const { value: name } = attempt(() => error.name)
+
+  if (name === 'AggregateError') {
     builtins.push('errors')
-  } else if (error.name === 'SuppressedError') {
+  } else if (name === 'SuppressedError') {
     builtins.push('error', 'suppressed')
   }
 
   const values = []
 
   for (const key of builtins) {
-    if (key in error === false) continue
+    if (descriptorOf(error, key) === undefined) continue
 
     values.push(
       new InspectPair(
         ': ',
         new InspectLeaf('[' + key + ']', null, depth + 1, opts),
-        inspectValue(error[key], depth + 1, opts),
+        inspectProperty(error, key, depth + 1, opts),
         depth + 1,
         opts
       )
     )
   }
 
-  for (const key in error) {
+  for (const key of keysOf(error)) {
     if (key === 'constructor' || builtins.includes(key)) continue
 
     values.push(
       new InspectPair(
         ': ',
         inspectKey(key, depth + 1, opts),
-        inspectValue(error[key], depth + 1, opts),
+        inspectProperty(error, key, depth + 1, opts),
         depth + 1,
         opts
       )
@@ -670,7 +706,7 @@ function inspectPromise(promise, ref, depth, opts) {
 
   ref.decrement()
 
-  const header = promise.constructor.name + ' { '
+  const header = (nameOf(promise) || 'Promise') + ' { '
 
   return new InspectSequence(header, ' }', ' ', values, ref, depth, opts)
 }
@@ -684,32 +720,36 @@ function inspectMap(map, ref, depth, opts) {
 
   let remaining = maxMapLength
 
-  for (const entry of map) {
-    if (remaining-- === 0) {
+  const { value: size } = attempt(() => map.size)
+
+  attempt(() => {
+    for (const entry of map) {
+      if (remaining-- === 0) {
+        values.push(
+          new InspectSuspension(size - values.length, depth + 1, {
+            ...opts,
+            breakAlways: true
+          })
+        )
+        break
+      }
+
       values.push(
-        new InspectSuspension(map.size - values.length, depth + 1, {
-          ...opts,
-          breakAlways: true
-        })
+        new InspectPair(
+          ' => ',
+          inspectValue(entry[0], depth + 1, opts),
+          inspectValue(entry[1], depth + 1, opts),
+          depth + 1,
+          opts
+        )
       )
-      break
     }
+  })
 
-    values.push(
-      new InspectPair(
-        ' => ',
-        inspectValue(entry[0], depth + 1, opts),
-        inspectValue(entry[1], depth + 1, opts),
-        depth + 1,
-        opts
-      )
-    )
-  }
-
-  for (const key in map) {
+  for (const key of keysOf(map)) {
     if (key === 'constructor') continue
 
-    const value = inspectValue(map[key], depth + 1, opts)
+    const value = inspectProperty(map, key, depth + 1, opts)
 
     values.push(
       new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, {
@@ -721,7 +761,7 @@ function inspectMap(map, ref, depth, opts) {
 
   ref.decrement()
 
-  const header = map.constructor.name + '(' + map.size + ') { '
+  const header = (nameOf(map) || 'Map') + '(' + size + ') { '
 
   return new InspectSequence(header, ' }', ', ', values, ref, depth, {
     ...opts,
@@ -738,24 +778,28 @@ function inspectSet(set, ref, depth, opts) {
 
   let remaining = maxSetLength
 
-  for (const entry of set) {
-    if (remaining-- === 0) {
-      values.push(
-        new InspectSuspension(set.size - values.length, depth + 1, {
-          ...opts,
-          breakAlways: true
-        })
-      )
-      break
+  const { value: size } = attempt(() => set.size)
+
+  attempt(() => {
+    for (const entry of set) {
+      if (remaining-- === 0) {
+        values.push(
+          new InspectSuspension(size - values.length, depth + 1, {
+            ...opts,
+            breakAlways: true
+          })
+        )
+        break
+      }
+
+      values.push(inspectValue(entry, depth + 1, opts))
     }
+  })
 
-    values.push(inspectValue(entry, depth + 1, opts))
-  }
-
-  for (const key in set) {
+  for (const key of keysOf(set)) {
     if (key === 'constructor') continue
 
-    const value = inspectValue(set[key], depth + 1, opts)
+    const value = inspectProperty(set, key, depth + 1, opts)
 
     values.push(
       new InspectPair(': ', inspectKey(key, depth + 1, opts), value, depth + 1, {
@@ -767,7 +811,7 @@ function inspectSet(set, ref, depth, opts) {
 
   ref.decrement()
 
-  const header = set.constructor.name + '(' + set.size + ') { '
+  const header = (nameOf(set) || 'Set') + '(' + size + ') { '
 
   return new InspectSequence(header, ' }', ', ', values, ref, depth, {
     ...opts,
@@ -776,7 +820,7 @@ function inspectSet(set, ref, depth, opts) {
 }
 
 function inspectWeakMap(weakMap, ref, depth, opts) {
-  const header = weakMap.constructor.name + ' { '
+  const header = (nameOf(weakMap) || 'WeakMap') + ' { '
 
   return new InspectSequence(
     header,
@@ -790,7 +834,7 @@ function inspectWeakMap(weakMap, ref, depth, opts) {
 }
 
 function inspectWeakSet(weakSet, ref, depth, opts) {
-  const header = weakSet.constructor.name + ' { '
+  const header = (nameOf(weakSet) || 'WeakSet') + ' { '
 
   return new InspectSequence(
     header,
@@ -804,7 +848,7 @@ function inspectWeakSet(weakSet, ref, depth, opts) {
 }
 
 function inspectWeakRef(weakRef, ref, depth, opts) {
-  const target = weakRef.deref()
+  const { value: target } = attempt(() => weakRef.deref())
 
   let value
 
@@ -814,7 +858,7 @@ function inspectWeakRef(weakRef, ref, depth, opts) {
     value = inspectValue(target, depth + 1, opts)
   }
 
-  const header = weakRef.constructor.name + ' { '
+  const header = (nameOf(weakRef) || 'WeakRef') + ' { '
 
   return new InspectSequence(header, ' }', ' ', [value], ref, depth, opts)
 }
@@ -838,7 +882,7 @@ function inspectArrayBuffer(arrayBuffer, ref, depth, opts) {
 
   ref.decrement()
 
-  const header = arrayBuffer.constructor.name + ' { '
+  const header = (nameOf(arrayBuffer) || 'ArrayBuffer') + ' { '
 
   return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
@@ -862,7 +906,7 @@ function inspectSharedArrayBuffer(sharedArrayBuffer, ref, depth, opts) {
 
   ref.decrement()
 
-  const header = sharedArrayBuffer.constructor.name + ' { '
+  const header = (nameOf(sharedArrayBuffer) || 'SharedArrayBuffer') + ' { '
 
   return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
@@ -895,12 +939,12 @@ function inspectTypedArray(typedArray, ref, depth, opts) {
     values.push(inspectValue(typedArray[i], depth + 1, opts))
   }
 
-  for (const key of binding.getOwnNonIndexPropertyNames(typedArray)) {
+  for (const key of nonIndexKeysOf(typedArray)) {
     values.push(
       new InspectPair(
         ': ',
         inspectKey(key, depth + 1, opts),
-        inspectValue(typedArray[key], depth + 1, opts),
+        inspectProperty(typedArray, key, depth + 1, opts),
         depth + 1,
         { ...opts, breakAlways: remaining < 0 }
       )
@@ -909,7 +953,7 @@ function inspectTypedArray(typedArray, ref, depth, opts) {
 
   ref.decrement()
 
-  const header = typedArray.constructor.name + '(' + typedArray.length + ') [ '
+  const header = (nameOf(typedArray) || 'TypedArray') + '(' + typedArray.length + ') [ '
 
   return new InspectSequence(header, ' ]', ', ', values, ref, depth, {
     ...opts,
@@ -941,12 +985,12 @@ function inspectBuffer(buffer, ref, depth, opts) {
     values.push(new InspectLeaf(buffer[i].toString(16).padStart(2, '0'), null, depth + 1, opts))
   }
 
-  for (const key of binding.getOwnNonIndexPropertyNames(buffer)) {
+  for (const key of nonIndexKeysOf(buffer)) {
     values.push(
       new InspectPair(
         ': ',
         inspectKey(key, depth + 1, opts),
-        inspectValue(buffer[key], depth + 1, opts),
+        inspectProperty(buffer, key, depth + 1, opts),
         depth + 1,
         { ...opts, breakAlways: remaining < 0 }
       )
@@ -978,12 +1022,12 @@ function inspectDataView(dataView, ref, depth, opts) {
     )
   }
 
-  for (const key of binding.getOwnNonIndexPropertyNames(dataView)) {
+  for (const key of nonIndexKeysOf(dataView)) {
     values.push(
       new InspectPair(
         ': ',
         inspectKey(key, depth + 1, opts),
-        inspectValue(dataView[key], depth + 1, opts),
+        inspectProperty(dataView, key, depth + 1, opts),
         depth + 1,
         opts
       )
@@ -992,21 +1036,27 @@ function inspectDataView(dataView, ref, depth, opts) {
 
   ref.decrement()
 
-  const header = dataView.constructor.name + ' { '
+  const header = (nameOf(dataView) || 'DataView') + ' { '
 
   return new InspectSequence(header, ' }', ', ', values, ref, depth, opts)
 }
 
 function inspectFunction(type, fn, depth, opts) {
-  if (fn.toString().startsWith('class')) return inspectClass(fn, depth, opts)
+  const { value: source } = attempt(() => fn.toString())
+
+  if (typeof source === 'string' && source.startsWith('class')) {
+    return inspectClass(fn, depth, opts)
+  }
 
   let tag = 'function'
 
   if (type.isGeneratorFunction()) tag = 'generator ' + tag
   if (type.isAsyncFunction()) tag = 'async ' + tag
 
+  const { value: name } = attempt(() => fn.name)
+
   return new InspectLeaf(
-    '[' + tag + ' ' + (fn.name ? fn.name : '(anonymous)') + ']',
+    '[' + tag + ' ' + (name ? name : '(anonymous)') + ']',
     styles.special,
     depth,
     opts
@@ -1014,8 +1064,10 @@ function inspectFunction(type, fn, depth, opts) {
 }
 
 function inspectClass(ctor, depth, opts) {
+  const { value: name } = attempt(() => ctor.name)
+
   return new InspectLeaf(
-    '[class ' + (ctor.name ? ctor.name : '(anonymous)') + ']',
+    '[class ' + (name ? name : '(anonymous)') + ']',
     styles.special,
     depth,
     opts
@@ -1029,4 +1081,76 @@ function inspectExternal(external, depth, opts) {
     depth,
     opts
   )
+}
+
+// An inspection must not fail on the value it inspects, so everything read from
+// that value is read through one of the helpers below. Values are read for
+// their own sake, which is why an accessor is reported rather than called, but
+// the labels an inspection puts around them are read as they are written.
+
+function attempt(fn) {
+  try {
+    return { value: fn(), threw: false, error: null }
+  } catch (err) {
+    return { value: undefined, threw: true, error: err }
+  }
+}
+
+// The name a value is labelled with, which is the name of its constructor.
+function nameOf(object) {
+  const { value: name } = attempt(() => object.constructor.name)
+
+  return typeof name === 'string' ? name : ''
+}
+
+function keysOf(object) {
+  const keys = []
+
+  // A partial list is the best that can be had from a value that stops
+  // answering halfway through.
+  attempt(() => {
+    for (const key in object) keys.push(key)
+  })
+
+  return keys
+}
+
+function symbolsOf(object) {
+  return attempt(() => Object.getOwnPropertySymbols(object)).value || []
+}
+
+function nonIndexKeysOf(object) {
+  return attempt(() => binding.getOwnNonIndexPropertyNames(object)).value || []
+}
+
+// Returns the descriptor, `undefined` if the property is absent, or `null` if
+// the lookup itself could not be made, as with a proxy that throws.
+function descriptorOf(object, key) {
+  let target = object
+
+  while (target !== null && target !== undefined) {
+    const { value: descriptor, threw } = attempt(() => Object.getOwnPropertyDescriptor(target, key))
+
+    if (threw) return null
+
+    if (descriptor) return descriptor
+
+    const { value: prototype, threw: unreadable } = attempt(() => Object.getPrototypeOf(target))
+
+    if (unreadable) return null
+
+    target = prototype
+  }
+
+  return undefined
+}
+
+function errorLabel(err) {
+  if (err === null || typeof err !== 'object') return 'a non-error'
+
+  const { value: message } = attempt(() => err.message)
+
+  const name = nameOf(err) || 'Error'
+
+  return typeof message === 'string' && message ? name + ': ' + message : name
 }
