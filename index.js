@@ -627,6 +627,14 @@ function inspectError(error, ref, depth, opts) {
   let header = attempt(() => error.stack).value
 
   if (typeof header === 'string') {
+    // Not all engines put the `<name>: <message>` line at the top of `stack`,
+    // so add it when it's missing.
+    const title = attempt(() => error.toString()).value
+
+    if (typeof title === 'string' && !header.startsWith(title)) {
+      header = title + '\n' + header
+    }
+
     if (depth > 0) {
       header = header.replaceAll('\n', '\n' + '  '.repeat(depth))
     }

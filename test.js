@@ -601,6 +601,13 @@ test('error keeps its stack', (t) => {
   t.ok(inspect(new Error('boom')).split('\n').length > 1)
 })
 
+test('error stack without a message header', (t) => {
+  const error = new Error('boom')
+  error.stack = '    at foo (file.js:1:1)'
+
+  t.is(inspect(error), 'Error: boom\n    at foo (file.js:1:1)')
+})
+
 function trim(strings, ...substitutions) {
   return String.raw(strings, ...substitutions).trim()
 }
