@@ -440,7 +440,7 @@ function inspectObject(type, object, depth, opts) {
     () => object[Symbol.for('bare.inspect')] || object[Symbol.for('nodejs.util.inspect.custom')]
   )
 
-  if (typeof inspect === 'function') {
+  if (typeof inspect === 'function' && isPrototype(object) === false) {
     const { value, threw, error } = attempt(() =>
       inspect.call(
         object,
@@ -1120,6 +1120,14 @@ function nameOf(object) {
   return typeof name === 'string' ? name : ''
 }
 
+// A prototype inherits the custom inspection written for its instances, which
+// must not be called on the prototype itself as it is not one of them.
+function isPrototype(object) {
+  const { value: prototype } = attempt(() => object.constructor.prototype)
+
+  return prototype === object
+}
+
 function keysOf(object) {
   const keys = []
 
@@ -1133,7 +1141,17 @@ function keysOf(object) {
 }
 
 function symbolsOf(object) {
-  return attempt(() => Object.getOwnPropertySymbols(object)).value || []
+  const symbols = []
+
+  for (const symbol of attempt(() => Object.getOwnPropertySymbols(object)).value || []) {
+    const { value: descriptor, threw } = attempt(() =>
+      Object.getOwnPropertyDescriptor(object, symbol)
+    )
+
+    if (threw || descriptor === undefined || descriptor.enumerable) symbols.push(symbol)
+  }
+
+  return symbols
 }
 
 function nonIndexKeysOf(object) {

@@ -483,6 +483,26 @@ test('custom inspect method with custom stylize', (t) => {
   t.is(inspect(new Foo(), { stylize }), 'FOO')
 })
 
+test('custom inspect method is not called on the prototype', (t) => {
+  class Foo {
+    [Symbol.for('bare.inspect')]() {
+      return 'Foo(' + this.bar + ')'
+    }
+  }
+
+  t.is(inspect(Foo.prototype), 'Foo {}')
+})
+
+test('custom inspect method is called on an inheriting object', (t) => {
+  const prototype = {
+    [Symbol.for('bare.inspect')]() {
+      return 'Foo'
+    }
+  }
+
+  t.is(inspect({ __proto__: prototype }), 'Foo')
+})
+
 test('array of custom inspect method with multi-line string result', (t) => {
   class Foo {
     [Symbol.for('bare.inspect')]() {
@@ -520,6 +540,21 @@ test('custom inspect method, Node.js compatibility', (t) => {
   }
 
   t.is(inspect(new Foo()), 'Foo { bar: false }')
+})
+
+test('non-enumerable symbols are not listed', (t) => {
+  const foo = Symbol('foo')
+  const bar = Symbol('bar')
+
+  const object = Object.defineProperties(
+    {},
+    {
+      [foo]: { value: 'foo', enumerable: true },
+      [bar]: { value: 'bar', enumerable: false }
+    }
+  )
+
+  t.is(inspect(object), "{ Symbol(foo): 'foo' }")
 })
 
 test('accessors are not invoked', (t) => {
