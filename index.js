@@ -339,7 +339,7 @@ function inspectValue(value, depth, opts) {
   if (type.isSymbol()) return inspectSymbol(value, depth, opts)
   if (type.isObject()) return inspectObject(type, value, depth, opts)
   if (type.isFunction()) return inspectFunction(type, value, depth, opts)
-  if (type.isExternal()) return inspectExternal(value, opts, opts)
+  if (type.isExternal()) return inspectExternal(value, depth, opts)
 }
 
 function inspectUndefined(depth, opts) {
@@ -1082,13 +1082,22 @@ function inspectClass(ctor, depth, opts) {
   )
 }
 
+// Externals are labelled by an opaque, per-process token so that their address
+// is never disclosed.
+const externalTokens = new WeakMap()
+
+let nextExternalToken = 1
+
 function inspectExternal(external, depth, opts) {
-  return new InspectLeaf(
-    '[external 0x' + binding.getExternal(external).toString(16) + ']',
-    styles.special,
-    depth,
-    opts
-  )
+  let token = externalTokens.get(external)
+
+  if (token === undefined) {
+    token = nextExternalToken++
+
+    externalTokens.set(external, token)
+  }
+
+  return new InspectLeaf('[external #' + token + ']', styles.special, depth, opts)
 }
 
 // An inspection must not fail on the value it inspects, so everything read from
