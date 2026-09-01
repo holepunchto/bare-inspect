@@ -13,11 +13,12 @@ bare_inspect_get_promise_state(js_env_t *env, js_callback_info_t *info) {
   err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
   assert(err == 0);
 
-  assert(argc == 1);
+  bool is_promise = false;
 
-  bool is_promise;
-  err = js_is_promise(env, argv[0], &is_promise);
-  assert(err == 0);
+  if (argc >= 1) {
+    err = js_is_promise(env, argv[0], &is_promise);
+    assert(err == 0);
+  }
 
   if (!is_promise) {
     err = js_throw_type_error(env, NULL, "Value must be a promise");
@@ -47,14 +48,26 @@ bare_inspect_get_promise_result(js_env_t *env, js_callback_info_t *info) {
   err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
   assert(err == 0);
 
-  assert(argc == 1);
+  bool is_promise = false;
 
-  bool is_promise;
-  err = js_is_promise(env, argv[0], &is_promise);
-  assert(err == 0);
+  if (argc >= 1) {
+    err = js_is_promise(env, argv[0], &is_promise);
+    assert(err == 0);
+  }
 
   if (!is_promise) {
     err = js_throw_type_error(env, NULL, "Value must be a promise");
+    assert(err == 0);
+
+    return NULL;
+  }
+
+  js_promise_state_t state;
+  err = js_get_promise_state(env, argv[0], &state);
+  assert(err == 0);
+
+  if (state == js_promise_pending) {
+    err = js_throw_type_error(env, NULL, "Value must be a settled promise");
     assert(err == 0);
 
     return NULL;
@@ -77,11 +90,12 @@ bare_inspect_get_external(js_env_t *env, js_callback_info_t *info) {
   err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
   assert(err == 0);
 
-  assert(argc == 1);
+  bool is_external = false;
 
-  bool is_external;
-  err = js_is_external(env, argv[0], &is_external);
-  assert(err == 0);
+  if (argc >= 1) {
+    err = js_is_external(env, argv[0], &is_external);
+    assert(err == 0);
+  }
 
   if (!is_external) {
     err = js_throw_type_error(env, NULL, "Value must be an external");
@@ -111,11 +125,12 @@ bare_inspect_get_own_non_index_property_names(js_env_t *env, js_callback_info_t 
   err = js_get_callback_info(env, info, &argc, argv, NULL, NULL);
   assert(err == 0);
 
-  assert(argc == 1);
+  js_value_type_t type = js_undefined;
 
-  js_value_type_t type;
-  err = js_typeof(env, argv[0], &type);
-  assert(err == 0);
+  if (argc >= 1) {
+    err = js_typeof(env, argv[0], &type);
+    assert(err == 0);
+  }
 
   if (type != js_object) {
     err = js_throw_type_error(env, NULL, "Value must be an object");
@@ -126,7 +141,7 @@ bare_inspect_get_own_non_index_property_names(js_env_t *env, js_callback_info_t 
 
   js_value_t *result;
   err = js_get_filtered_property_names(env, argv[0], js_key_own_only, js_property_only_enumerable, js_index_skip_indices, js_key_convert_to_string, &result);
-  assert(err == 0);
+  if (err < 0) return NULL;
 
   return result;
 }
