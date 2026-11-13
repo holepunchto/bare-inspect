@@ -242,6 +242,19 @@ test('functions', (t) => {
 test('classes', (t) => {
   t.is(inspect(class Foo {}), '[class Foo]', 'named class')
   t.is(inspect(class {}), '[class (anonymous)]', 'anonymous class')
+  t.is(inspect(class Bar extends class {} {}), '[class Bar]', 'derived class')
+  t.is(inspect(Map), '[class Map]', 'built-in constructor')
+  t.is(
+    inspect(
+      class Foo {
+        static toString() {
+          return 'function Foo() {}'
+        }
+      }
+    ),
+    '[class Foo]',
+    'class that shadows toString'
+  )
 })
 
 test('class instances', (t) => {

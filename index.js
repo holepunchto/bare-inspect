@@ -1050,11 +1050,7 @@ function inspectDataView(dataView, ref, depth, opts) {
 }
 
 function inspectFunction(type, fn, depth, opts) {
-  const { value: source } = attempt(() => fn.toString())
-
-  if (typeof source === 'string' && source.startsWith('class')) {
-    return inspectClass(fn, depth, opts)
-  }
+  if (isClass(fn)) return inspectClass(fn, depth, opts)
 
   let tag = 'function'
 
@@ -1069,6 +1065,14 @@ function inspectFunction(type, fn, depth, opts) {
     depth,
     opts
   )
+}
+
+// The prototype of a class or a built-in constructor is read-only, while that of
+// an ordinary function is writable.
+function isClass(fn) {
+  const { value: descriptor } = attempt(() => Object.getOwnPropertyDescriptor(fn, 'prototype'))
+
+  return descriptor !== undefined && descriptor.writable === false
 }
 
 function inspectClass(ctor, depth, opts) {
